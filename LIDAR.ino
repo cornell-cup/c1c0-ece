@@ -39,6 +39,7 @@
  */
  
 // This sketch code is based on the RPLIDAR driver library provided by RoboPeak
+//https://github.com/robopeak/rplidar_arduino Library destination for setup ~IMPORTANT~
 #include <RPLidar.h>
 
 // You need to create an driver instance 
