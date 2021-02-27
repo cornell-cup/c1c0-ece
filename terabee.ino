@@ -89,7 +89,6 @@ void loop() {
       //while(Serial.available() < 16); // wait until all the data is definitely there
       Serial1.readBytes(databuffer, 16);
  
-      memcpy(data, databuffer, 16);
       state = MSG_INIT;
       format_data(databuffer, data);
       for (int i = 0; i < 8; i++) {
