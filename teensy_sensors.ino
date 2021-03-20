@@ -16,6 +16,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
+#include <RPLidar.h>
 
 #define START1 77
 #define START2 70
@@ -27,6 +28,9 @@
 #define MSG_CRC8 40
 #define MSG_DONE 50
 
+#define RPLIDAR_MOTOR 3 // PWM pin for controlling RPLIDAR motor speed - connect to MOTOCTRL
+
+//Terabee Variables
 int state;
 uint8_t databuffer[16];
 uint16_t data[8];
@@ -34,7 +38,15 @@ int state2;
 uint8_t databuffer2[16];
 uint16_t data2[8];
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55);
+//Lidar variables
+int count = 0;
+typedef struct {float angle; float distance;}lidar_tuple;
+int i = 0;
+lidar_tuple LidarData[360]; //replace with fixed length and clear/run again if needed
+
+Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
+
+RPLidar lidar; // Instantiate lidar
 
 
 void find_msg(int &state, HardwareSerial &ser) {
@@ -78,10 +90,13 @@ byte mode[4] = {0x00,0x11,0x02,0x4C};
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(38400);
-  Serial1.begin(115200);
-  Serial2.begin(115200);
+  Serial.begin(38400); //Monitor 
+  Serial1.begin(115200); //Terabee1
+  Serial2.begin(115200); //Terabee2
+  Serial3.begin(115200); //Lidar
   bno.begin(); //IMU Initialization
+  bno.enterNormalMode();
+  lidar.begin(Serial3); //Lidar Initialization
 
   delay(500); // take some time
 
@@ -95,7 +110,6 @@ int avail;
 int avail2;
 
 void loop() {
-  // put your main code here, to run repeatedly:
   //IMU Vectors
 //  imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
   imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
@@ -103,7 +117,7 @@ void loop() {
 //  imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
 //  imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
   
-
+  //Terabee Code
   avail = Serial1.available();
   if (avail > 0) {
     //Serial.print("Bytes on buffer: ");
@@ -126,6 +140,7 @@ void loop() {
     }
   }
   //Serial.println(b);
+  
   avail2 = Serial2.available();
   if (avail2 > 0) {
     //Serial.print("Bytes on buffer: ");
@@ -147,6 +162,7 @@ void loop() {
       }
     }
   }
+  //IMU Code
   Serial.print("X: ");
   Serial.print(gyro.x());
   Serial.print(" Y: ");
@@ -154,4 +170,34 @@ void loop() {
   Serial.print(" Z: ");
   Serial.print(gyro.z());
   Serial.println("");
+  
+  //Lidar Code
+  i = i%360;
+  if (IS_OK(lidar.waitPoint())) {
+      float distance = lidar.getCurrentPoint().distance; //distance value in mm unit
+      float angle    = lidar.getCurrentPoint().angle; //angle value in degrees
+      LidarData[i] = lidar_tuple{angle,distance};
+      
+      Serial.println(LidarData[i].angle);
+      Serial.println(LidarData[i].distance);
+      i++;
+      
+//        bool  startBit = lidar.getCurrentPoint().startBit; //whether this point is belong to a new scan
+//        byte  quality  = lidar.getCurrentPoint().quality; //quality of the current measurement
+
+
+    
+  } else {
+    //analogWrite(RPLIDAR_MOTOR, 0); //stop the rplidar motor
+    
+    // try to detect RPLIDAR... 
+    rplidar_response_device_info_t info;
+    if (IS_OK(lidar.getDeviceInfo(info, 100))) {
+       // detected...
+       lidar.startScan();
+       // start motor rotating at max allowed speed
+       //analogWrite(RPLIDAR_MOTOR, 255);
+       delay(1000);
+    }
+  }
 }
