@@ -1,4 +1,3 @@
-
 /*
  * RoboPeak RPLIDAR Arduino Example
  * This example shows the easy and common way to fetch data from an RPLIDAR
@@ -57,17 +56,13 @@ void setup() {
  Serial.println("Here");
  lidar.begin(Serial1);
  Serial.println("Here");
- 
-  
-  // set pin modes
-  pinMode(RPLIDAR_MOTOR, OUTPUT);
-  
-  
 }
+
 int count = 0;
 typedef struct tuple{ float angle; float distance;}tuple;
 int i = 0;
 tuple LidarData[360];//replace with fixed length and clear/run again if needed
+
 void loop() {
     i = i%360;
     if (IS_OK(lidar.waitPoint())) {
@@ -86,7 +81,7 @@ void loop() {
       //perform data processing here... 
       
     } else {
-      analogWrite(RPLIDAR_MOTOR, 0); //stop the rplidar motor
+      //analogWrite(RPLIDAR_MOTOR, 0); //stop the rplidar motor
       
       // try to detect RPLIDAR... 
       rplidar_response_device_info_t info;
@@ -94,7 +89,7 @@ void loop() {
          // detected...
          lidar.startScan();
          // start motor rotating at max allowed speed
-         analogWrite(RPLIDAR_MOTOR, 255);
+         //analogWrite(RPLIDAR_MOTOR, 255);
          delay(1000);
       }
     }
