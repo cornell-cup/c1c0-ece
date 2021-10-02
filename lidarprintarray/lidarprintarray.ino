@@ -40,7 +40,7 @@
 
 // This sketch code is based on the RPLIDAR driver library provided by RoboPeak
 #include <RPLidar.h>
-
+#include <R2Protocol.h>
 
 // You need to create an driver instance 
 RPLidar lidar;
@@ -48,11 +48,13 @@ RPLidar lidar;
 #define RPLIDAR_MOTOR 3 // The PWM pin for control the speed of RPLIDAR's motor.
                         // This pin should connected with the RPLIDAR's MOTOCTRL signal   
 //floor angle and distance to 16bit ints
-float arraydata[50][2];
+//uint16_t arraydata[50][2];
 int arrayindex;
 unsigned long timeBegin;
 
-uint8_t buffdata[100];
+uint16_t buffdatatemp[100];
+uint8_t buffdata[200];
+uint8_t buffdatasend[1024];
                         
 void setup() {
   
@@ -70,28 +72,38 @@ void setup() {
 
 }
 
+void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
+  uint32_t written = r2p_encode(type, data, data_len, send_buffer, 1024);
+  Serial4.write(send_buffer, written);
+  Serial.println("NUMBER OF BYTES WRITTEN! READ ME" + String(written));
+}
+
 void loop() {
     if (IS_OK(lidar.waitPoint())) {
-        float distance = lidar.getCurrentPoint().distance; //distance value in mm unit
-        float angle    = lidar.getCurrentPoint().angle; //angle value in degrees
+        uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
+        uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
                
         //Serial.println("Angle:" + String(angle));
         //Serial.println("Distance:" + String(distance));
-        if (arrayindex<=49){
-        for (int i = 0; i<50; i++){
-          for (int j =0; j<2;j++){
-            if (j==1){
-              arraydata[i][j] = 100*i;
+        if (arrayindex <= 49) {
+          buffdatatemp[arrayindex*2] = angle;
+          buffdatatemp[arrayindex*2+1] = distance;
+          arrayindex++;
+          }
+          /*
+          for (int i=0;i<50;i++){
+            for(int j=0;j<2;j++){
+              if (j==1){
+                arraydata[i][j] = (uint16_t) 100*i;
+              }
+              else{
+                arraydata[i][j]= (uint16_t) i;
+              }
             }
-            else{
-              arraydata[i][j]=i;
-            }
+          }
+          */
         }
-        }
-        arrayindex = arrayindex+1;
-        }
-
-    } else {
+     else {
       
       // try to detect RPLIDAR... 
       rplidar_response_device_info_t info;
@@ -99,36 +111,45 @@ void loop() {
          // detected...
          lidar.startScan();
          // start motor rotating at max allowed speed
-         //analogWrite(RPLIDAR_MOTOR, 255);
+         analogWrite(RPLIDAR_MOTOR, 255);
          delay(1000);
       }
     }
-    if (arrayindex==50){
-      printArray(arraydata);
-      makeBuffs(arraydata);
-      Serial4.write(buffdata, sizeof(buffdata));
-    }
+
+     if (arrayindex == 50) {
+        printArray(buffdatatemp);
+        convert_b16_to_b8(buffdatatemp, buffdata,100);
+        send("LDR", buffdata, 200, buffdatasend);
+//        Serial4.write(buffdata, sizeof(buffdata));
+        arrayindex=0; 
+     }   
 }
 
-void makeBuffs(float data[50][2]) {
+void makeBuffs(uint16_t data[][2]) {
   
   for(int i = 0; i < 50; i++){
     for(int j = 0; j < 2; j++) {
       //buffdata[i][j] = (int)(data[i][j]);
-      buffdata[i*2+j]=data[i][j];
+      buffdatatemp[i*2+j]=data[i][j];
     }
   }
 }
 
-void printArray(float arraydata[50][2]){
-  for (int i = 0; i<50; i++){
-      for (int j =0; j<2;j++){
-        if(j==0){
-          Serial.println("Angle: " +String(arraydata[i][j]));
+void printArray(uint16_t data[100]){
+  for (int i = 0; i<100; i++){
+        if(i%2 == 0){
+          Serial.println("Angle: " +String(data[i]));
         }
         else{
-          Serial.println("Distance: "+String(arraydata[i][j]));
+          Serial.println("Distance: "+String(data[i]));
         }
       }
-    }
+    
+}
+
+void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
+  for (int i = 0; i < 2*len; i+=2) {
+    data[i] = (databuffer[i/2] >> 8) & 255;
+    data[i+1] = (databuffer[i/2]) & 255;
+  }  
 }
