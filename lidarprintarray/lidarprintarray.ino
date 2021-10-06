@@ -53,7 +53,7 @@ int arrayindex;
 unsigned long timeBegin;
 
 uint16_t buffdatatemp[100];
-uint8_t buffdata[200];
+uint8_t buffdata[204];
 uint8_t buffdatasend[1024];
                         
 void setup() {
@@ -69,6 +69,10 @@ void setup() {
 
  arrayindex=0;
  timeBegin = micros();
+ buffdata[0] = 255;
+ buffdata[1] = 255;
+ buffdata[202]=255;
+ buffdata[203]=255;
 
 }
 
@@ -148,7 +152,7 @@ void printArray(uint16_t data[100]){
 }
 
 void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
-  for (int i = 0; i < 2*len; i+=2) {
+  for (int i = 2; i < 2*len + 2; i+=2) {
     data[i] = (databuffer[i/2] >> 8) & 255;
     data[i+1] = (databuffer[i/2]) & 255;
   }  
