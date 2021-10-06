@@ -11,7 +11,8 @@ import R2Protocol2 as r2p
 
 ser = serial.Serial('/dev/ttyTHS1',
 					9600)
-					
+startseq = (16777215).to_bytes(3, 'big')
+endseq = (16777214).to_bytes(3, 'big')
 
 print(ser)
 
@@ -21,10 +22,18 @@ def pack(tup):
 
 try:
 	while True:
-		ser_msg = ser.read(216)
+		ser_msg = ser.read(444)
 			
 		mtype, lidar_data, status = r2p.decode(ser_msg)
-		#print(mtype, msg, status)
+		#print(mtype, msg, status
+		
+		print(lidar_data)
+		
+		start = lidar_data.index(startseq) + 3
+		end = lidar_data.index(endseq, start)
+		
+		lidar_data = lidar_data[start:end]
+		
 		
 		for i in range(0, len(lidar_data), 4):
 			#print("Here")
