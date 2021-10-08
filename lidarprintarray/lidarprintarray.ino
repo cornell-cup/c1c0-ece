@@ -53,7 +53,7 @@ int arrayindex;
 unsigned long timeBegin;
 
 uint16_t buffdatatemp[100];
-uint8_t buffdata[204];
+uint8_t buffdata[206];
 uint8_t buffdatasend[1024];
                         
 void setup() {
@@ -71,8 +71,10 @@ void setup() {
  timeBegin = micros();
  buffdata[0] = 255;
  buffdata[1] = 255;
- buffdata[202]=255;
+ buffdata[2] = 255;
  buffdata[203]=255;
+ buffdata[204]=255;
+ buffdata[205]=254;
 
 }
 
@@ -121,10 +123,11 @@ void loop() {
     }
 
      if (arrayindex == 50) {
-        printArray(buffdatatemp);
+//        printArray(buffdatatemp);
         convert_b16_to_b8(buffdatatemp, buffdata,100);
-        send("LDR", buffdata, 200, buffdatasend);
-//        Serial4.write(buffdata, sizeof(buffdata));
+        for (int i = 0; i < 206; i++)
+          Serial.println(buffdata[i]);
+        send("LDR", buffdata, 206, buffdatasend);
         arrayindex=0; 
      }   
 }
@@ -152,8 +155,8 @@ void printArray(uint16_t data[100]){
 }
 
 void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
-  for (int i = 2; i < 2*len + 2; i+=2) {
-    data[i] = (databuffer[i/2] >> 8) & 255;
-    data[i+1] = (databuffer[i/2]) & 255;
+  for (int i = 3; i < 2*len + 2; i+=2) {
+    data[i] = (databuffer[(i-3)/2] >> 8) & 255;
+    data[i+1] = (databuffer[(i-3)/2]) & 255;
   }  
 }
