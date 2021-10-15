@@ -15,9 +15,9 @@
   */
 
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
+//#include <Adafruit_Sensor.h>
+//#include <Adafruit_BNO055.h>
+//#include <utility/imumaths.h>
 #include <RPLidar.h>
 #include <R2Protocol.h>
 
@@ -47,7 +47,7 @@ int array_counter = 0;
 const uint16_t zero_b16 = 0;
 uint8_t lidar_databuffer[720];
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
+//Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
 RPLidar lidar; // Instantiate lidar
 
@@ -102,16 +102,17 @@ void setup() {
   Serial1.begin(115200); //Terabee1
   Serial2.begin(115200); //Terabee2
   Serial3.begin(115200); //Lidar
+  Serial4.begin(9600);
   Serial5.begin(115200); // Jetson
-  bno.begin();           //IMU Initialization
-  bno.enterNormalMode();
+//  bno.begin();           //IMU Initialization
+//  bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
 
   delay(500); // take some time
 
   Serial1.write(mode, 4); // write the command for hex output
   Serial2.write(mode, 4); // write the command for hex output
-  bno.setExtCrystalUse(true);
+//  bno.setExtCrystalUse(true);
 }
 
 uint8_t  b;
@@ -124,7 +125,7 @@ uint8_t lidar_send_buffer[1024];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, 1024);
-  Serial5.write(send_buffer, written);
+  Serial4.write(send_buffer, written);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
@@ -147,67 +148,70 @@ void loop() {
         Serial.println(terabee1_data[i]);
       }
       //IMU Vectors
-      //  imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-      imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-      //  imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-      //  imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+//        imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+//        imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
+//        imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+//        imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
       //IMU Code
-      Serial.print("X: ");
-      Serial.print(gyro.x());
-      Serial.print(" Y: ");
-      Serial.print(gyro.y());
-      Serial.print(" Z: ");
-      Serial.print(gyro.z());
-      Serial.println("");
-  
-      Serial.println("LIDAR array count = ");
-      Serial.println(array_counter);
-      convert_b16_to_b8(LidarData, lidar_databuffer, 360);
-      send("LDR", lidar_databuffer, 720, lidar_send_buffer);
-      array_counter = 0;
-      for (int i = 0; i < 360; i++) {
-        LidarData[i] = zero_b16;
-      }
+//      Serial.print("X: ");
+//      Serial.print(gyro.x());
+//      Serial.print(" Y: ");
+//      Serial.print(gyro.y());
+//      Serial.print(" Z: ");
+//      Serial.print(gyro.z());
+//      Serial.println("");
+//  
+//      Serial.println("LIDAR array count = ");
+//      Serial.println(array_counter);
+//      convert_b16_to_b8(LidarData, lidar_databuffer, 360);
+//      send("LDR", lidar_databuffer, 720, lidar_send_buffer);
+//      array_counter = 0;
+//      for (int i = 0; i < 360; i++) {
+//        LidarData[i] = zero_b16;
+//      }
     }
   }
 
-  // Terabee 2 code
-  avail2 = Serial2.available();
-  if (avail2 > 0) {
-    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-      find_msg(state2, Serial2);
-    } else if (state2 == MSG_DATA) {
-      Serial2.readBytes(terabee2_databuffer, 16);
-      state2 = MSG_INIT;
-      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-      for (int i = 0; i < 8; i++) {
-        Serial.print("Sensor2 ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(terabee2_data[i]);
-      }
-    }
-  }
+//  // Terabee 2 code
   
-  //Lidar Code
-  if (IS_OK(lidar.waitPoint())) {
-      int distance = (int) lidar.getCurrentPoint().distance; //distance value in mm unit
-      int angle    = (int) lidar.getCurrentPoint().angle; //angle value in degrees
-      LidarData[angle] = distance;
-      array_counter += 1;
-      // Serial.println(LidarData[idx].angle);
-      // Serial.println(LidarData[idx].distance);
-      //Serial5.write((byte)LidarData[i].angle);
-      //Serial5.write((byte)LidarData[i].distance);    
-  } else { 
-    // try to detect RPLIDAR... 
-    rplidar_response_device_info_t info;
-    if (IS_OK(lidar.getDeviceInfo(info, 100))) {
-       // detected...
-       lidar.startScan();
-       // start motor rotating at max allowed speed
-       //analogWrite(RPLIDAR_MOTOR, 255);
-       delay(1000);
-    }
-  }
+//  avail2 = Serial2.available();
+//  if (avail2 > 0) {
+//    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
+//      find_msg(state2, Serial2);
+//    } else if (state2 == MSG_DATA) {
+//      Serial2.readBytes(terabee2_databuffer, 16);
+//      state2 = MSG_INIT;
+//      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
+//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+//      for (int i = 0; i < 8; i++) {
+//        Serial.print("Sensor2 ");
+//        Serial.print(i);
+//        Serial.print(": ");
+//        Serial.println(terabee2_data[i]);
+//      }
+//    }
+//  }
+  
+//  
+//  //Lidar Code
+//  if (IS_OK(lidar.waitPoint())) {
+//      int distance = (int) lidar.getCurrentPoint().distance; //distance value in mm unit
+//      int angle    = (int) lidar.getCurrentPoint().angle; //angle value in degrees
+//      LidarData[angle] = distance;
+//      array_counter += 1;
+//      // Serial.println(LidarData[idx].angle);
+//      // Serial.println(LidarData[idx].distance);
+//      //Serial5.write((byte)LidarData[i].angle);
+//      //Serial5.write((byte)LidarData[i].distance);    
+//  } else { 
+//    // try to detect RPLIDAR... 
+//    rplidar_response_device_info_t info;
+//    if (IS_OK(lidar.getDeviceInfo(info, 100))) {
+//       // detected...
+//       lidar.startScan();
+//       // start motor rotating at max allowed speed
+//       //analogWrite(RPLIDAR_MOTOR, 255);
+//       delay(1000);
+//    }
+//  }
 }
