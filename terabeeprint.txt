@@ -1,0 +1,978 @@
+38
+431
+544
+49
+979
+41
+49
+57
+End of seg
+37
+449
+573
+49
+949
+38
+48
+57
+End of seg
+34
+455
+554
+51
+977
+41
+45
+54
+End of seg
+35
+65535
+555
+47
+965
+39
+46
+56
+End of seg
+39
+445
+547
+53
+962
+43
+45
+54
+End of seg
+39
+433
+558
+49
+983
+39
+43
+55
+End of seg
+37
+386
+559
+53
+960
+38
+46
+55
+End of seg
+39
+444
+549
+50
+980
+39
+43
+56
+End of seg
+37
+462
+544
+51
+982
+39
+42
+56
+End of seg
+9472
+11264
+13778
+58098
+41650
+49864
+16457
+20992
+End of seg
+9472
+10752
+14290
+58098
+41650
+49908
+15945
+20992
+End of seg
+10240
+11520
+13522
+58098
+41650
+49759
+7497
+20992
+End of seg
+9984
+12032
+14546
+58098
+41650
+49893
+52297
+20992
+End of seg
+9472
+11008
+14290
+58098
+41650
+49678
+17737
+20992
+End of seg
+38
+431
+538
+46
+973
+34
+42
+54
+End of seg
+36
+455
+541
+50
+995
+36
+47
+57
+End of seg
+34
+456
+543
+52
+982
+35
+46
+54
+End of seg
+38
+493
+555
+48
+987
+36
+45
+53
+End of seg
+40
+409
+556
+49
+986
+37
+48
+57
+End of seg
+37
+442
+539
+48
+980
+40
+45
+57
+End of seg
+39
+425
+546
+53
+974
+39
+43
+55
+End of seg
+37
+443
+549
+49
+967
+38
+48
+53
+End of seg
+36
+465
+547
+50
+999
+36
+41
+57
+End of seg
+40
+467
+561
+50
+979
+40
+46
+55
+End of seg
+35
+475
+544
+49
+977
+36
+45
+55
+End of seg
+36
+424
+556
+52
+984
+37
+46
+55
+End of seg
+39
+389
+546
+49
+979
+37
+43
+56
+End of seg
+34
+506
+545
+51
+975
+37
+44
+54
+End of seg
+37
+432
+535
+51
+988
+34
+47
+57
+End of seg
+32
+420
+559
+48
+977
+35
+47
+57
+End of seg
+36
+445
+544
+47
+969
+39
+46
+53
+End of seg
+38
+464
+550
+51
+982
+34
+47
+53
+End of seg
+37
+461
+529
+52
+981
+35
+45
+57
+End of seg
+40
+453
+552
+48
+961
+38
+45
+56
+End of seg
+34
+427
+536
+51
+984
+36
+46
+55
+End of seg
+38
+476
+558
+51
+983
+38
+43
+52
+End of seg
+37
+436
+557
+49
+980
+35
+47
+55
+End of seg
+38
+458
+552
+48
+976
+37
+43
+54
+End of seg
+38
+458
+547
+49
+973
+36
+46
+57
+End of seg
+36
+419
+546
+51
+984
+38
+48
+55
+End of seg
+38
+448
+559
+50
+992
+37
+44
+55
+End of seg
+35
+428
+539
+51
+959
+35
+46
+52
+End of seg
+37
+480
+554
+48
+983
+35
+42
+56
+End of seg
+38
+475
+547
+51
+980
+37
+42
+53
+End of seg
+38
+492
+546
+48
+991
+37
+46
+57
+End of seg
+37
+65535
+557
+47
+993
+40
+44
+53
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+42
+396
+556
+45
+1002
+33
+44
+55
+End of seg
+37
+459
+557
+49
+975
+37
+42
+57
+End of seg
+39
+426
+540
+48
+978
+33
+44
+55
+End of seg
+39
+437
+542
+50
+980
+39
+47
+52
+End of seg
+38
+436
+543
+51
+996
+36
+46
+56
+End of seg
+40
+465
+551
+50
+978
+35
+45
+52
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+End of seg
+39
+437
+548
+47
+983
+37
+42
+57
+End of seg
+38
+481
+553
+50
+982
+37
+45
+57
+End of seg
+39
+443
+553
+46
+985
+35
+46
+56
+End of seg
+37
+470
+546
+51
+981
+35
+45
+56
+End of seg
+38
+438
+549
+50
+979
+36
+44
+54
+End of seg
+40
+449
+556
+50
+995
+33
+46
+56
+End of seg
+40
+475
+561
+48
+963
+37
+47
+59
+End of seg
+41
+424
+562
+51
+987
+35
+47
+55
+End of seg
+40
+414
+545
+50
+997
+37
+41
+54
+End of seg
+End of seg
+36
+422
+544
+46
+976
+37
+44
+55
+End of seg
+40
+448
+545
+52
+966
+39
+46
+52
+End of seg
+40
+489
+559
+48
+980
+35
+43
+54
+End of seg
+37
+490
+545
+47
+998
+38
+47
+55
+End of seg
+37
+513
+541
+47
+996
+38
+46
+54
+End of seg
+37
+424
+548
+50
+986
+34
+46
+55
+End of seg
+39
+483
+550
+50
+976
+37
+42
+53
+End of seg
+37
+459
+560
+51
+989
+37
+46
+51
+End of seg
+37
+438
+547
+51
+1001
+37
+44
+55
+End of seg
+37
+432
+541
+49
+997
+37
+46
+55
+End of seg
+37
+502
+547
+49
+986
+37
+45
+54
+End of seg
+36
+505
+546
+51
+1001
+35
+47
+56
+End of seg
+35
+466
+549
+49
+969
+36
+45
+57
+End of seg
+40
+407
+556
+49
+979
+36
+45
+53
+End of seg
+36
+450
+545
+54
+991
+40
+44
+54
+End of seg
+39
+480
+536
+50
+986
+36
+47
+57
+End of seg
+38
+472
+554
+49
+958
+34
+46
+55
+End of seg
+41
+471
+545
+48
+967
+33
+43
+54
+End of seg
+39
+484
+558
+48
+999
+38
+42
+56
+End of seg
+39
+460
+536
+50
+993
+38
+44
+54
+End of seg
+41
+423
+548
+50
+999
+40
+44
+54
+End of seg
+38
+437
+523
+53
+975
+36
+45
+56
+End of seg
+38
+450
+545
+50
+977
+36
+46
+53
+End of seg
+39
+433
+535
+49
+987
+40
+43
+56
+End of seg
+36
+477
+548
+51
+999
+38
+43
+57
+End of seg
+37
+407
+555
+47
+987
+37
+44
+56
+End of seg
+37
+445
+544
+53
+990
+37
+47
+57
+End of seg
+39
+497
+529
+49
+982
+37
+44
+56
+End of seg
+33
+441
+557
+50
+985
+39
+44
+56
+End of seg
+36
+453
+558
+51
+993
+35
+47
+56
+End of seg
+40
+437
+550
+49
+973
+36
+47
+55
+End of seg
+End of seg
+35
+440
+555
+49
+998
+35
+46
+57
+End of seg
+38
+426
+554
+46
+968
+37
+43
+55
+End of seg

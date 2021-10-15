@@ -22,8 +22,8 @@ def init_serial(port, baud):
 	"""
 	global ser, startseq, endseq
 	
-	ser = serial.Serial('/dev/ttyTHS1',
-						9600)
+	ser = serial.Serial(port,
+						baud)
 	startseq = (16777215).to_bytes(3, 'big')
 	endseq = (16777214).to_bytes(3, 'big')
 
