@@ -104,11 +104,11 @@ void loop() {
     }
 
      if (arrayindex == 50) {
-//        printArray(buffdatatemp);
+        printArray(buffdatatemp);
         convert_b16_to_b8(buffdatatemp, buffdata,100);
-//        for (int i = 0; i < 206; i++)
+//        for (int i = 0; i < 200; i++)
 //          Serial.println(buffdata[i]);
-        send("LDR", buffdata, 206, buffdatasend);
+        send("LDR", buffdata, 200, buffdatasend);
         arrayindex=0; 
      }   
 }

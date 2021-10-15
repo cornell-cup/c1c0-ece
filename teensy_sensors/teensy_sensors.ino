@@ -175,57 +175,57 @@ void loop() {
 //
 ////  // Terabee 2 code
 //  
-  avail2 = Serial2.available();
-  if (avail2 > 0) {
-    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-      find_msg(state2, Serial2);
-    } else if (state2 == MSG_DATA) {
-      Serial2.readBytes(terabee2_databuffer, 16);
-      state2 = MSG_INIT;
-      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-      for (int i = 0; i < 8; i++) {
-        Serial.print("Sensor2 ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(terabee2_data[i]);
-      }
-    }
-  }
-  
+//  avail2 = Serial2.available();
+//  if (avail2 > 0) {
+//    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
+//      find_msg(state2, Serial2);
+//    } else if (state2 == MSG_DATA) {
+//      Serial2.readBytes(terabee2_databuffer, 16);
+//      state2 = MSG_INIT;
+//      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
+//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+//      for (int i = 0; i < 8; i++) {
+//        Serial.print("Sensor2 ");
+//        Serial.print(i);
+//        Serial.print(": ");
+//        Serial.println(terabee2_data[i]);
+//      }
+//    }
+//  }
+//  
 //  
 //  //Lidar Code
-  if (IS_OK(lidar.waitPoint())) {
-        uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
-        uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
-               
-        //Serial.println("Angle:" + String(angle));
-        //Serial.println("Distance:" + String(distance));
-        if (lidar_array_index <= 49) {
-          LidarData[lidar_array_index*2] = angle;
-          LidarData[lidar_array_index*2+1] = distance;
-          lidar_array_index++;
-          }
-        }
-     else {
-      
-      // try to detect RPLIDAR... 
-      rplidar_response_device_info_t info;
-      if (IS_OK(lidar.getDeviceInfo(info, 100))) {
-         // detected...
-         lidar.startScan();
-         // start motor rotating at max allowed speed
-         analogWrite(RPLIDAR_MOTOR, 255);
-         delay(1000);
-      }
-    }
-
-     if (lidar_array_index == 50) {
-//        printArray(buffdatatemp);
-        convert_b16_to_b8(LidarData, lidar_databuffer,100);
-//        for (int i = 0; i < 206; i++)
-//          Serial.println(buffdata[i]);
-        send("LDR", lidar_databuffer, 200, lidar_send_buffer);
-        lidar_array_index=0; 
-     }   
+//  if (IS_OK(lidar.waitPoint())) {
+//        uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
+//        uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
+//               
+//        //Serial.println("Angle:" + String(angle));
+//        //Serial.println("Distance:" + String(distance));
+//        if (lidar_array_index <= 49) {
+//          LidarData[lidar_array_index*2] = angle;
+//          LidarData[lidar_array_index*2+1] = distance;
+//          lidar_array_index++;
+//          }
+//        }
+//     else {
+//      
+//      // try to detect RPLIDAR... 
+//      rplidar_response_device_info_t info;
+//      if (IS_OK(lidar.getDeviceInfo(info, 100))) {
+//         // detected...
+//         lidar.startScan();
+//         // start motor rotating at max allowed speed
+//         analogWrite(RPLIDAR_MOTOR, 255);
+//         delay(1000);
+//      }
+//    }
+//
+//     if (lidar_array_index == 50) {
+////        printArray(buffdatatemp);
+//        convert_b16_to_b8(LidarData, lidar_databuffer,100);
+////        for (int i = 0; i < 200; i++)
+////          Serial.println(buffdata[i]);
+//        send("LDR", lidar_databuffer, 200, lidar_send_buffer);
+//        lidar_array_index=0; 
+//     }   
 }
