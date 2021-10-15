@@ -53,7 +53,7 @@ int arrayindex;
 unsigned long timeBegin;
 
 uint16_t buffdatatemp[100];
-uint8_t buffdata[206];
+uint8_t buffdata[200];
 uint8_t buffdatasend[1024];
                         
 void setup() {
@@ -69,13 +69,6 @@ void setup() {
 
  arrayindex=0;
  timeBegin = micros();
- buffdata[0] = 255;
- buffdata[1] = 255;
- buffdata[2] = 255;
- buffdata[203]=255;
- buffdata[204]=255;
- buffdata[205]=254;
-
 }
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
@@ -96,18 +89,6 @@ void loop() {
           buffdatatemp[arrayindex*2+1] = distance;
           arrayindex++;
           }
-          /*
-          for (int i=0;i<50;i++){
-            for(int j=0;j<2;j++){
-              if (j==1){
-                arraydata[i][j] = (uint16_t) 100*i;
-              }
-              else{
-                arraydata[i][j]= (uint16_t) i;
-              }
-            }
-          }
-          */
         }
      else {
       
@@ -125,23 +106,12 @@ void loop() {
      if (arrayindex == 50) {
 //        printArray(buffdatatemp);
         convert_b16_to_b8(buffdatatemp, buffdata,100);
-        for (int i = 0; i < 206; i++)
-          Serial.println(buffdata[i]);
+//        for (int i = 0; i < 206; i++)
+//          Serial.println(buffdata[i]);
         send("LDR", buffdata, 206, buffdatasend);
         arrayindex=0; 
      }   
 }
-
-void makeBuffs(uint16_t data[][2]) {
-  
-  for(int i = 0; i < 50; i++){
-    for(int j = 0; j < 2; j++) {
-      //buffdata[i][j] = (int)(data[i][j]);
-      buffdatatemp[i*2+j]=data[i][j];
-    }
-  }
-}
-
 void printArray(uint16_t data[100]){
   for (int i = 0; i<100; i++){
         if(i%2 == 0){
@@ -155,8 +125,8 @@ void printArray(uint16_t data[100]){
 }
 
 void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
-  for (int i = 3; i < 2*len + 2; i+=2) {
-    data[i] = (databuffer[(i-3)/2] >> 8) & 255;
-    data[i+1] = (databuffer[(i-3)/2]) & 255;
+  for (int i = 0; i < 2*len; i+=2) {
+    data[i] = (databuffer[i] >> 8) & 255;
+    data[i+1] = (databuffer[i/2]) & 255;
   }  
 }
