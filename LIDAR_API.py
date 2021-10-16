@@ -43,49 +43,52 @@ def get_LIDAR_tuples():
 	"""
 	global ser, startseq, endseq, lidar_tuple_array
 	
-	lidar_tuple_array = []
-	ser_msg = ser.read(444)
+	good_data = False
+	
+	while(not good_data):
+		lidar_tuple_array = []
+		ser_msg = ser.read(216)
+			
+		mtype, lidar_data, status = r2p.decode(ser_msg)
 		
-	mtype, lidar_data, status = r2p.decode(ser_msg)
-	#print(mtype, msg, status
-	
-	#print(lidar_data)
-	
-	start = lidar_data.index(startseq) + 3
-	end = lidar_data.index(endseq, start)
-	
-	lidar_data = lidar_data[start:end]
-	print(len(lidar_data))
-	
-	for i in range(0, len(lidar_data), 4):
-		#print("Here")
-		angle_msbs = lidar_data[i]
-		angle_lsbs = lidar_data[i+1]
-		distance_msbs = lidar_data[i+2]
-		distance_lsbs = lidar_data[i+3]
-		#print("Packet: " + str(i))
-		#print("Angle MSB: " + str(angle_msbs) + " Angle LSB: " + str(angle_lsbs))
-		#print("Distance MSB: " + str(distance_msbs) + " Distance LSB: " + str(distance_lsbs))
-		angle = pack((angle_msbs, angle_lsbs))
-		distance = pack((distance_msbs, angle_msbs))
-		#print("Angle: " + str(angle))
-		#print("Distance: " + str(distance))
-		#print("")
-		lidar_tuple_array.append((angle,distance))
-	
+		print(mtype)
+		# ~ print(lidar_data)
+		
+		
+		if(status == 1):
+			good_data = True
+			for i in range(0, len(lidar_data), 4):
+				# ~ print("Here")
+				angle_msbs = lidar_data[i]
+				angle_lsbs = lidar_data[i+1]
+				distance_msbs = lidar_data[i+2]
+				distance_lsbs = lidar_data[i+3]
+				#print("Packet: " + str(i))
+				# ~ print("Angle MSB: " + str(angle_msbs) + " Angle LSB: " + str(angle_lsbs))
+				# ~ print("Distance MSB: " + str(distance_msbs) + " Distance LSB: " + str(distance_lsbs))
+				angle = pack((angle_msbs, angle_lsbs))
+				distance = pack((distance_msbs, angle_msbs))
+				print("Angle: " + str(angle))
+				print("Distance: " + str(distance))
+				print("")
+				lidar_tuple_array.append((angle,distance))
+		else:
+			ser.reset_input_buffer()
+			
+		
 	return lidar_tuple_array
 		
 
 
 if __name__ == '__main__':
-	init_serial('/dev/ttyTHS1', 9600)
+	init_serial('/dev/ttyTHS1', 38400)
 	
 	try:
 		while True:
 			start = time.time()
 			arr = get_LIDAR_tuples()
-			for i in arr:
-				print(i)
+			# ~ for i in arr:
+				# ~ print(i)
 			print("End of seg")
 			end = time.time() - start
 			print(end)

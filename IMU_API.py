@@ -3,7 +3,7 @@ import time
 import sys
 
 """
-Terabee API for use with path_planning. 
+IMU API for use with path_planning. 
 
 """
 sys.path.append('../c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
@@ -28,12 +28,8 @@ def init_serial(port, baud):
 	
 	
 
-def get_terabee_array():
+def get_imu_tuples():
 	"""
-	Acquires and returns one array of terabee data, for each of the three
-	terabee sensor strips (three strips of 8 sensors each)
-	This will return all three arrays, each element in the array denotes
-	a 16-bit integer measurement in mm
 
 	
 	"""
@@ -42,11 +38,8 @@ def get_terabee_array():
 	good_data = False
 	
 	while(not good_data):
-		terabee_array_1 = []
-		terabee_array_2 = []
-		terabee_array_3 = []
-
-		ser_msg = ser.read(64) # make 96 for three terabees
+		gyro_data = []
+		ser_msg = ser.read(22) # make 96 for three terabees
 			
 		for i in range(0, len(ser_msg), 32): 
 			
@@ -73,7 +66,7 @@ def get_terabee_array():
 				ser.reset_input_buffer()
 
 		
-	return terabee_array_1, terabee_array_2, terabee_array_3
+	return gyro_array
 		
 
 
@@ -86,13 +79,10 @@ if __name__ == '__main__':
 		while True:
 
 			start = time.time()
-			arr, arr2, arr3 = get_terabee_array()
+			arr = get_imu_tuples()
 			for i in arr:
 				print(i)
-			for i in arr2:
-				print(i)
 			print("End of seg")
-			f.write("End of seg\n")
 			end = time.time() - start
 			print(end)
 			
