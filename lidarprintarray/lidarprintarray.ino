@@ -61,7 +61,7 @@ void setup() {
   // bind the RPLIDAR driver to the arduino hardware serial
  Serial3.begin(115200);
  Serial.begin(4800);
- Serial4.begin(9600);
+ Serial4.begin(38400);
  Serial.println("Here");
  lidar.begin(Serial3);
  Serial.println("Here");
@@ -82,8 +82,8 @@ void loop() {
         uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
         uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
                
-        //Serial.println("Angle:" + String(angle));
-        //Serial.println("Distance:" + String(distance));
+//        Serial.println("Angle:" + String(angle));
+//        Serial.println("Distance:" + String(distance));
         if (arrayindex <= 49) {
           buffdatatemp[arrayindex*2] = angle;
           buffdatatemp[arrayindex*2+1] = distance;
@@ -126,7 +126,7 @@ void printArray(uint16_t data[100]){
 
 void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
   for (int i = 0; i < 2*len; i+=2) {
-    data[i] = (databuffer[i] >> 8) & 255;
+    data[i] = (databuffer[i/2] >> 8) & 255;
     data[i+1] = (databuffer[i/2]) & 255;
   }  
 }
