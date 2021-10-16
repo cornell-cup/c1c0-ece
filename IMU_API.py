@@ -37,50 +37,65 @@ def get_imu_tuples():
 	
 	good_data = False
 	
+	ser.reset_input_buffer()
+	
 	while(not good_data):
-		gyro_data = []
-		ser_msg = ser.read(22) # make 96 for three terabees
+		
+		gyro_array = []
+		lin_accel_array = []
+		
+		ser_msg = ser.read(28)
+		
+		# ~ for i in range(0, len(ser_msg), 22):
 			
-		for i in range(0, len(ser_msg), 32): 
+		mtype, data, status = r2p.decode(ser_msg)
+		
+		print(mtype)
+		print(status)
+		
+		if(status == 1):
+			good_data = True
 			
-			mtype, terabee_data, status = r2p.decode(ser_msg[i:i+32])
+			for i in range(0, len(data), 2):
+				if (i < 6):
+					gyro_array.append(int.from_bytes(data[i:i+2],
+									  byteorder = 'big', signed = True))
+				else:
+					lin_accel_array.append(int.from_bytes(data[i:i+2],
+									  byteorder = 'big', signed = True))
 			
-			print(mtype)
+			# ~ if(mtype==b'IMU\x00'):
+				# ~ for i in range(0, len(data), 2):
+					# ~ gyro_array.append(int.from_bytes(data[i:i+2], 
+									# ~ byteorder = 'big', signed = True))
+			# ~ elif(mtype==b'LINA'):
+				# ~ for i in range(0, len(data), 2):
+					# ~ lin_accel_array.append(int.from_bytes(data[i:i+2], 
+									# ~ byteorder = 'big', signed = True))
 			
-			if(status == 1):
-				good_data = True
-				if(mtype==b'IR\x00\x00'):
-					for i in range(0, len(terabee_data), 2):
-						terabee_value = (terabee_data[i]<<8) | terabee_data[i+1]
-						terabee_array_1.append(terabee_value)
-				elif(mtype==b'IR2\x00'):
-					for i in range(0, len(terabee_data), 2):
-						terabee_value = (terabee_data[i]<<8) | terabee_data[i+1]
-						terabee_array_2.append(terabee_value)
-				elif(mtype==b'IR3\x00'):
-					for i in range(0, len(terabee_data), 2):
-						terabee_value = (terabee_data[i]<<8) | terabee_data[i+1]
-						terabee_array_3.append(terabee_value)
-					
-			else:
-				ser.reset_input_buffer()
+			
+				
+		else:
+			ser.reset_input_buffer()
 
 		
-	return gyro_array
+	return gyro_array, lin_accel_array
 		
 
 
 if __name__ == '__main__':
 	init_serial('/dev/ttyTHS1', 38400)
 	
-	f = open("terabeeprint.txt", "a")
-	
 	try:
 		while True:
 
 			start = time.time()
-			arr = get_imu_tuples()
+			arr, arr1 = get_imu_tuples()
+			print("Gyro: ")
 			for i in arr:
+				print(i)
+			print("Linear Acceleration: ")
+			for i in arr1:
 				print(i)
 			print("End of seg")
 			end = time.time() - start
@@ -88,4 +103,3 @@ if __name__ == '__main__':
 			
 	except KeyboardInterrupt:
 		ser.close()
-		f.close()
