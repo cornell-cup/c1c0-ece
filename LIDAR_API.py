@@ -27,7 +27,9 @@ def init_serial(port, baud):
 	startseq = (16777215).to_bytes(3, 'big')
 	endseq = (16777214).to_bytes(3, 'big')
 
-
+def close_serial():
+	global ser
+	ser.close()
 
 def pack(tup):
 	return(tup[0]<<8 | tup[1])
@@ -57,6 +59,7 @@ def get_LIDAR_tuples():
 		
 		if(status == 1):
 			good_data = True
+			if(mtype == "LIDAR"):
 			for i in range(0, len(lidar_data), 4):
 				# ~ print("Here")
 				angle_msbs = lidar_data[i]

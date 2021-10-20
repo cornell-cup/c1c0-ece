@@ -26,7 +26,10 @@ def init_serial(port, baud):
 	ser = serial.Serial(port,
 						baud)
 	
-	
+
+def close_serial():
+	global ser
+	ser.close()
 
 def get_terabee_array():
 	"""
