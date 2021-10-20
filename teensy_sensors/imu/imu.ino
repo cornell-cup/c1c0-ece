@@ -15,6 +15,8 @@
 #define MSG_CRC8 40
 #define MSG_DONE 50
 
+#define BNO055_SAMPLERATE_DELAY_MS (100)
+
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
 byte mode[4] = {0x00,0x11,0x02,0x4C};
@@ -29,14 +31,14 @@ void convert_b16_to_b8(int *databuffer, uint8_t *data, int len) {
 }
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
-  uint32_t written = r2p_encode(type, data, data_len, send_buffer, 1024);
+  uint32_t written = r2p_encode(type, data, data_len, send_buffer, 28);
   Serial4.write(send_buffer, written);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
 int imudata[6];
 uint8_t buffdata[12];
-uint8_t buffdatasend[1024];
+uint8_t buffdatasend[28];
 
 void setup() {
   // put your setup code here, to run once:
@@ -59,9 +61,9 @@ void setup() {
 void loop() {
   
       //IMU Vectors
-        imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+        //imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
         imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-        imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+        //imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
         imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
       //IMU Code
       Serial.print("X: ");
@@ -83,12 +85,14 @@ void loop() {
       imudata[0] = (int)gyro.x();
       imudata[1] = (int)gyro.y();
       imudata[2] = (int)gyro.z();
-      imudata[0] = (int)lin_accel.x();
-      imudata[1] = (int)lin_accel.y();
-      imudata[2] = (int)lin_accel.z();
+      imudata[3] = (int)lin_accel.x();
+      imudata[4] = (int)lin_accel.y();
+      imudata[5] = (int)lin_accel.z();
 
       convert_b16_to_b8(imudata,buffdata,6);
       send("IMU", buffdata, 12, buffdatasend);
+
+      delay(BNO055_SAMPLERATE_DELAY_MS);
   
 
 }
