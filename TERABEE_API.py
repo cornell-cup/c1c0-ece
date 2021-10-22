@@ -55,6 +55,8 @@ def get_terabee_array():
 			
 			mtype, terabee_data, status = r2p.decode(ser_msg[i:i+32])
 			
+			# based on mtype, remove bytes from beginning of ser_msg
+			
 			print(mtype)
 			
 			if(status == 1):
