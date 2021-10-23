@@ -85,8 +85,6 @@ def get_terabee_array():
 if __name__ == '__main__':
 	init_serial('/dev/ttyTHS1', 38400)
 	
-	f = open("terabeeprint.txt", "a")
-	
 	try:
 		while True:
 
@@ -97,10 +95,8 @@ if __name__ == '__main__':
 			for i in arr2:
 				print(i)
 			print("End of seg")
-			f.write("End of seg\n")
 			end = time.time() - start
 			print(end)
 			
 	except KeyboardInterrupt:
 		ser.close()
-		f.close()
