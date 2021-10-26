@@ -59,22 +59,22 @@ def get_LIDAR_tuples():
 		
 		if(status == 1):
 			good_data = True
-			if(mtype == "LIDAR"):
-			for i in range(0, len(lidar_data), 4):
-				# ~ print("Here")
-				angle_msbs = lidar_data[i]
-				angle_lsbs = lidar_data[i+1]
-				distance_msbs = lidar_data[i+2]
-				distance_lsbs = lidar_data[i+3]
-				#print("Packet: " + str(i))
-				# ~ print("Angle MSB: " + str(angle_msbs) + " Angle LSB: " + str(angle_lsbs))
-				# ~ print("Distance MSB: " + str(distance_msbs) + " Distance LSB: " + str(distance_lsbs))
-				angle = pack((angle_msbs, angle_lsbs))
-				distance = pack((distance_msbs, angle_msbs))
-				print("Angle: " + str(angle))
-				print("Distance: " + str(distance))
-				print("")
-				lidar_tuple_array.append((angle,distance))
+			if(mtype == b'LDR\x00'):
+				for i in range(0, len(lidar_data), 4):
+					# ~ print("Here")
+					angle_msbs = lidar_data[i]
+					angle_lsbs = lidar_data[i+1]
+					distance_msbs = lidar_data[i+2]
+					distance_lsbs = lidar_data[i+3]
+					#print("Packet: " + str(i))
+					# ~ print("Angle MSB: " + str(angle_msbs) + " Angle LSB: " + str(angle_lsbs))
+					# ~ print("Distance MSB: " + str(distance_msbs) + " Distance LSB: " + str(distance_lsbs))
+					angle = pack((angle_msbs, angle_lsbs))
+					distance = pack((distance_msbs, angle_msbs))
+					print("Angle: " + str(angle))
+					print("Distance: " + str(distance))
+					print("")
+					lidar_tuple_array.append((angle,distance))
 		else:
 			ser.reset_input_buffer()
 			
@@ -90,8 +90,8 @@ if __name__ == '__main__':
 		while True:
 			start = time.time()
 			arr = get_LIDAR_tuples()
-			# ~ for i in arr:
-				# ~ print(i)
+			for i in arr:
+				print(i)
 			print("End of seg")
 			end = time.time() - start
 			print(end)
