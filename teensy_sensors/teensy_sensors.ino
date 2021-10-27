@@ -42,7 +42,7 @@ uint8_t terabee2_databuffer[16];
 uint16_t terabee2_data[8];
 
 //Lidar variables
-unsigned int LidarData[100]; //replace with fixed length and clear/run again if needed
+uint16_t LidarData[100]; //replace with fixed length and clear/run again if needed
 int array_counter = 0;
 const uint16_t zero_b16 = 0;
 uint8_t lidar_databuffer[200];
@@ -50,7 +50,7 @@ int lidar_array_index;
 
 //IMU variables
 uint8_t imu_databuffer[12];
-uint16_t imu_data[8];
+uint16_t imu_data[6];
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
@@ -90,7 +90,7 @@ void convert_b8_to_b16(uint8_t *databuffer, uint16_t *data) {
   }
 }
 
-void convert_b16_to_b8(int *databuffer, uint8_t *data, int len) {
+void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
 //  int data_idx1;
 //  int data_idx2;
   for (int i = 0; i < 2*len; i+=2) {
@@ -104,10 +104,10 @@ byte mode[4] = {0x00,0x11,0x02,0x4C};
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(38400);   //Monitor 
-  Serial1.begin(115200); //Terabee1
+  //Serial1.begin(115200); //Terabee1
   Serial2.begin(115200); //Terabee2
   Serial3.begin(115200); //Lidar
-  Serial4.begin(38400);  //Jetson
+  Serial4.begin(115200);  //Jetson
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
@@ -131,71 +131,90 @@ uint8_t imu_send_buffer[1024];
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, 1024);
   Serial4.write(send_buffer, written);
-  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
+  //Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
 void loop() {
  
   //Terabee 1 Code
-//  avail = Serial1.available();
-//  if (avail > 0) {
-//    if (state == MSG_INIT || state == MSG_BEGIN) {
-//      find_msg(state, Serial1);
-//    } else if (state == MSG_DATA) {
-//      Serial1.readBytes(terabee1_databuffer, 16);
-//      state = MSG_INIT;
-//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-//      convert_b8_to_b16(terabee1_databuffer, terabee1_data);
-//      for (int i = 0; i < 8; i++) {
-//        Serial.print("Sensor1 ");
-//        Serial.print(i);
-//        Serial.print(": ");
-//        Serial.println(terabee1_data[i]);
-//      }
-//      //IMU Vectors
-//        imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-//        imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-//        imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-//        imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-//      //IMU Code
-//      Serial.print("X: ");
-//      Serial.print(gyro.x());
-//      Serial.print(" Y: ");
-//      Serial.print(gyro.y());
-//      Serial.print(" Z: ");
-//      Serial.print(gyro.z());
-//      Serial.println("");
-//
-//      imudata[0] = (int)gyro.x();
-//      imudata[1] = (int)gryo.y();
-//      imudata[2] = (int)gyro.z();
-//      imudata[3] = (int)lin_accel.x();
-//      imudata[4] = (int)lin_accel.y();
-//      imudata[5] = (int)lin_accel.z();
-//    }
-//  }
-//
-////  // Terabee 2 code
-//  
-//  avail2 = Serial2.available();
-//  if (avail2 > 0) {
-//    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-//      find_msg(state2, Serial2);
-//    } else if (state2 == MSG_DATA) {
-//      Serial2.readBytes(terabee2_databuffer, 16);
-//      state2 = MSG_INIT;
-//      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-//      send("LDR", lidar_databuffer, 200, lidar_send_buffer);
-//      send("IMU", imu_databuffer, 12, imu_send_buffer);
+  avail = Serial1.available();
+  if (avail > 0) {
+    if (state == MSG_INIT || state == MSG_BEGIN) {
+      find_msg(state, Serial1);
+    } else if (state == MSG_DATA) {
+      Serial1.readBytes(terabee1_databuffer, 16);
+      state = MSG_INIT;
+      convert_b8_to_b16(terabee1_databuffer, terabee1_data);
+      for (int i = 0; i < 8; i++) {
+        Serial.print("Sensor1 ");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(terabee1_data[i]);
+      }
+      //IMU Vectors
+        imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+        imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
+        imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+        imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+      //IMU Code
+      Serial.print("X: ");
+      Serial.print(gyro.x());
+      Serial.print(" Y: ");
+      Serial.print(gyro.y());
+      Serial.print(" Z: ");
+      Serial.print(gyro.z());
+      Serial.println("");
+
+      imu_data[0] = (int)gyro.x();
+      imu_data[1] = (int)gyro.y();
+      imu_data[2] = (int)gyro.z();
+      imu_data[3] = (int)lin_accel.x();
+      imu_data[4] = (int)lin_accel.y();
+      imu_data[5] = (int)lin_accel.z();
+      convert_b16_to_b8(imu_data, imu_databuffer, 12);
+    }
+  }
+
+//  // Terabee 2 code
+  
+  avail2 = Serial2.available();
+  if (avail2 > 0) {
+    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
+      find_msg(state2, Serial2);
+    } else if (state2 == MSG_DATA) {
+      Serial2.readBytes(terabee2_databuffer, 16);
+      state2 = MSG_INIT;
+      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
+      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+      imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
+      imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+      imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+      imu_data[0] = (int)gyro.x();
+      imu_data[1] = (int)gyro.y();
+      imu_data[2] = (int)gyro.z();
+      imu_data[3] = (int)lin_accel.x();
+      imu_data[4] = (int)lin_accel.y();
+      imu_data[5] = (int)lin_accel.z();
+      Serial.print("X: ");
+      Serial.print(gyro.x());
+      Serial.print(" Y: ");
+      Serial.print(gyro.y());
+      Serial.print(" Z: ");
+      Serial.print(gyro.z());
+      Serial.println("");
+      convert_b16_to_b8(imu_data, imu_databuffer, 12);
+      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+      send("LDR", lidar_databuffer, 200, lidar_send_buffer);
+      send("IMU", imu_databuffer, 12, imu_send_buffer);
 //      for (int i = 0; i < 8; i++) {
 //        Serial.print("Sensor2 ");
 //        Serial.print(i);
 //        Serial.print(": ");
 //        Serial.println(terabee2_data[i]);
 //      }
-//    }
-//  }
+    }
+  }
   
 //  
 //  //Lidar Code
@@ -227,7 +246,7 @@ void loop() {
      if (lidar_array_index == 50) {
 //        printArray(buffdatatemp);
         convert_b16_to_b8(LidarData, lidar_databuffer,100);
-        send("LDR", lidar_databuffer, 200, lidar_send_buffer);
+        //send("LDR", lidar_databuffer, 200, lidar_send_buffer);
 //        for (int i = 0; i < 200; i++)
 //          Serial.println(buffdata[i]);
         lidar_array_index=0; 
