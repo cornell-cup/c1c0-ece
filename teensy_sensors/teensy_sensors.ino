@@ -104,7 +104,7 @@ byte mode[4] = {0x00,0x11,0x02,0x4C};
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(38400);   //Monitor 
-  //Serial1.begin(115200); //Terabee1
+  Serial1.begin(115200); //Terabee1
   Serial2.begin(115200); //Terabee2
   Serial3.begin(115200); //Lidar
   Serial4.begin(115200);  //Jetson
@@ -195,24 +195,24 @@ void loop() {
       imu_data[3] = (int)lin_accel.x();
       imu_data[4] = (int)lin_accel.y();
       imu_data[5] = (int)lin_accel.z();
-      Serial.print("X: ");
-      Serial.print(gyro.x());
-      Serial.print(" Y: ");
-      Serial.print(gyro.y());
-      Serial.print(" Z: ");
-      Serial.print(gyro.z());
-      Serial.println("");
+//      Serial.print("X: ");
+//      Serial.print(gyro.x());
+//      Serial.print(" Y: ");
+//      Serial.print(gyro.y());
+//      Serial.print(" Z: ");
+//      Serial.print(gyro.z());
+//      Serial.println("");
       convert_b16_to_b8(imu_data, imu_databuffer, 12);
       send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
       send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
       send("LDR", lidar_databuffer, 200, lidar_send_buffer);
       send("IMU", imu_databuffer, 12, imu_send_buffer);
-//      for (int i = 0; i < 8; i++) {
-//        Serial.print("Sensor2 ");
-//        Serial.print(i);
-//        Serial.print(": ");
-//        Serial.println(terabee2_data[i]);
-//      }
+      for (int i = 0; i < 8; i++) {
+        Serial.print("Sensor2 ");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(terabee2_data[i]);
+      }
     }
   }
   
@@ -244,11 +244,11 @@ void loop() {
     }
 
      if (lidar_array_index == 50) {
-//        printArray(buffdatatemp);
+        Serial.println("HERE");
         convert_b16_to_b8(LidarData, lidar_databuffer,100);
-        //send("LDR", lidar_databuffer, 200, lidar_send_buffer);
-//        for (int i = 0; i < 200; i++)
-//          Serial.println(buffdata[i]);
+        for (int i = 0; i < 100; i++){
+          Serial.println(LidarData[i]);
+        }
         lidar_array_index=0; 
      }   
 }
