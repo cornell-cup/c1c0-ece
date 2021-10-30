@@ -94,19 +94,19 @@ if __name__ == '__main__':
 	init_serial('/dev/ttyTHS1', 38400)
 	
 	try:
-		#while True:
+		while True:
 
-		start = time.time()
-		arr, arr1 = get_imu_tuples()
-		print("Gyro: ")
-		for i in arr:
-			print(i)
-		print("Linear Acceleration: ")
-		for i in arr1:
-			print(i)
-		print("End of seg")
-		end = time.time() - start
-		print(end)
+			start = time.time()
+			arr, arr1 = get_imu_tuples()
+			print("Gyro: ")
+			for i in arr:
+				print(i)
+			print("Linear Acceleration: ")
+			for i in arr1:
+				print(i)
+			print("End of seg")
+			end = time.time() - start
+			print(end)
 			
 	except KeyboardInterrupt:
 		ser.close()
