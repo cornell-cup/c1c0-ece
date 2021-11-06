@@ -42,7 +42,7 @@ uint8_t buffdatasend[28];
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(38400);   //Monitor 
+  Serial.begin(9600);   //Monitor 
   Serial1.begin(115200); //Terabee1
   Serial2.begin(115200); //Terabee2
   Serial3.begin(115200); //Lidar

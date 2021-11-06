@@ -20,6 +20,7 @@
 #include <utility/imumaths.h>
 #include <RPLidar.h>
 #include <R2Protocol.h>
+#include <EEPROM.h>
 
 #define START1 77
 #define START2 70
@@ -32,6 +33,7 @@
 #define MSG_DONE 50
 
 #define RPLIDAR_MOTOR 3 // PWM pin for controlling RPLIDAR motor speed - connect to MOTOCTRL
+#define BNO055_SAMPLERATE_DELAY_MS (100)
 
 //Terabee Variables
 int state;
@@ -40,6 +42,9 @@ uint16_t terabee1_data[8];
 int state2;
 uint8_t terabee2_databuffer[16];
 uint16_t terabee2_data[8];
+int state3;
+uint8_t terabee3_databuffer[16];
+uint16_t terabee3_data[8];
 
 //Lidar variables
 uint16_t LidarData[100]; //replace with fixed length and clear/run again if needed
@@ -49,8 +54,9 @@ uint8_t lidar_databuffer[200];
 int lidar_array_index;
 
 //IMU variables
-uint8_t imu_databuffer[12];
-uint16_t imu_data[6];
+uint8_t imu_databuffer[6];
+uint16_t imu_data[3];
+bool foundCalib;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
@@ -99,6 +105,125 @@ void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
   }  
 }
 
+void displaySensorDetails(void)
+{
+  sensor_t sensor;
+  bno.getSensor(&sensor);
+  Serial.println("------------------------------------");
+  Serial.print("Sensor:       ");
+  Serial.println(sensor.name);
+  Serial.print("Driver Ver:   ");
+  Serial.println(sensor.version);
+  Serial.print("Unique ID:    ");
+  Serial.println(sensor.sensor_id);
+  Serial.print("Max Value:    ");
+  Serial.print(sensor.max_value);
+  Serial.println(" xxx");
+  Serial.print("Min Value:    ");
+  Serial.print(sensor.min_value);
+  Serial.println(" xxx");
+  Serial.print("Resolution:   ");
+  Serial.print(sensor.resolution);
+  Serial.println(" xxx");
+  Serial.println("------------------------------------");
+  Serial.println("");
+  delay(500);
+}
+
+/**************************************************************************/
+/*
+    Display some basic info about the sensor status
+    */
+/**************************************************************************/
+void displaySensorStatus(void)
+{
+  /* Get the system status values (mostly for debugging purposes) */
+  uint8_t system_status, self_test_results, system_error;
+  system_status = self_test_results = system_error = 0;
+  bno.getSystemStatus(&system_status, &self_test_results, &system_error);
+
+  /* Display the results in the Serial Monitor */
+  Serial.println("");
+  Serial.print("System Status: 0x");
+  Serial.println(system_status, HEX);
+  Serial.print("Self Test:     0x");
+  Serial.println(self_test_results, HEX);
+  Serial.print("System Error:  0x");
+  Serial.println(system_error, HEX);
+  Serial.println("");
+  delay(500);
+}
+
+/**************************************************************************/
+/*
+    Display sensor calibration status
+    */
+/**************************************************************************/
+void displayCalStatus(void)
+{
+  /* Get the four calibration values (0..3) */
+  /* Any sensor data reporting 0 should be ignored, */
+  /* 3 means 'fully calibrated" */
+  uint8_t system, gyro, accel, mag;
+  system = gyro = accel = mag = 0;
+  bno.getCalibration(&system, &gyro, &accel, &mag);
+
+  /* The data should be ignored until the system calibration is > 0 */
+  Serial.print("\t");
+  if (!system)
+  {
+    Serial.print("! ");
+  }
+
+  /* Display the individual values */
+  Serial.print("Sys:");
+  Serial.print(system, DEC);
+  Serial.print(" G:");
+  Serial.print(gyro, DEC);
+  Serial.print(" A:");
+  Serial.print(accel, DEC);
+  Serial.print(" M:");
+  Serial.print(mag, DEC);
+}
+
+/**************************************************************************/
+/*
+    Display the raw calibration offset and radius data
+    */
+/**************************************************************************/
+void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
+{
+  Serial.print("Accelerometer: ");
+  Serial.print(calibData.accel_offset_x);
+  Serial.print(" ");
+  Serial.print(calibData.accel_offset_y);
+  Serial.print(" ");
+  Serial.print(calibData.accel_offset_z);
+  Serial.print(" ");
+
+  Serial.print("\nGyro: ");
+  Serial.print(calibData.gyro_offset_x);
+  Serial.print(" ");
+  Serial.print(calibData.gyro_offset_y);
+  Serial.print(" ");
+  Serial.print(calibData.gyro_offset_z);
+  Serial.print(" ");
+
+  Serial.print("\nMag: ");
+  Serial.print(calibData.mag_offset_x);
+  Serial.print(" ");
+  Serial.print(calibData.mag_offset_y);
+  Serial.print(" ");
+  Serial.print(calibData.mag_offset_z);
+  Serial.print(" ");
+
+  Serial.print("\nAccel Radius: ");
+  Serial.print(calibData.accel_radius);
+
+  Serial.print("\nMag Radius: ");
+  Serial.print(calibData.mag_radius);
+}
+
 byte mode[4] = {0x00,0x11,0x02,0x4C};
 
 void setup() {
@@ -107,7 +232,8 @@ void setup() {
   Serial1.begin(115200); //Terabee1
   Serial2.begin(115200); //Terabee2
   Serial3.begin(115200); //Lidar
-  Serial4.begin(115200);  //Jetson
+  Serial4.begin(115200); //Jetson
+  Serial5.begin(115200); //Terabee3
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
@@ -116,22 +242,141 @@ void setup() {
 
   Serial1.write(mode, 4); // write the command for hex output
   Serial2.write(mode, 4); // write the command for hex output
+  Serial5.write(mode, 4);
+
+  Serial.println("Orientation Sensor Test");
+  Serial.println("");
+
+  /* Initialise the sensor */
+  if (!bno.begin())
+  {
+    /* There was a problem detecting the BNO055 ... check your connections */
+    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    while (1)
+      ;
+  }
+
+  int eeAddress = 0;
+  long bnoID;
+  bool foundCalib = false;
+
+  EEPROM.get(eeAddress, bnoID);
+
+  adafruit_bno055_offsets_t calibrationData;
+  sensor_t sensor;
+
+  /*
+    *  Look for the sensor's unique ID at the beginning oF EEPROM.
+    *  This isn't foolproof, but it's better than nothing.
+    */
+  bno.getSensor(&sensor);
+  if (bnoID != sensor.sensor_id)
+  {
+    Serial.println("\nNo Calibration Data for this sensor exists in EEPROM");
+    delay(500);
+  }
+  else
+  {
+    Serial.println("\nFound Calibration for this sensor in EEPROM.");
+    eeAddress += sizeof(long);
+    EEPROM.get(eeAddress, calibrationData);
+
+    displaySensorOffsets(calibrationData);
+
+    Serial.println("\n\nRestoring Calibration data to the BNO055...");
+    bno.setSensorOffsets(calibrationData);
+
+    Serial.println("\n\nCalibration data loaded into BNO055");
+    foundCalib = true;
+  }
+
+  delay(1000);
+
+  /* Display some basic information on this sensor */
+  displaySensorDetails();
+
+  /* Optional: Display current status */
+  displaySensorStatus();
+
+  /* Crystal must be configured AFTER loading calibration data into BNO055. */
   bno.setExtCrystalUse(true);
+
+  sensors_event_t event;
+  bno.getEvent(&event);
+  /* always recal the mag as It goes out of calibration very often */
+//  if (foundCalib)
+//  {
+//    Serial.println("Move sensor slightly to calibrate magnetometers");
+//    while (!bno.isFullyCalibrated())
+//    {
+//      bno.getEvent(&event);
+//      delay(BNO055_SAMPLERATE_DELAY_MS);
+//    }
+//  }
+//  else
+//  {
+//    Serial.println("Please Calibrate Sensor: ");
+//    while (!bno.isFullyCalibrated())
+//    {
+//      bno.getEvent(&event);
+//
+//      Serial.print("X: ");
+//      Serial.print(event.orientation.x, 4);
+//      Serial.print("\tY: ");
+//      Serial.print(event.orientation.y, 4);
+//      Serial.print("\tZ: ");
+//      Serial.print(event.orientation.z, 4);
+//
+//      /* Optional: Display calibration status */
+//      displayCalStatus();
+//
+//      /* New line for the next sample */
+//      Serial.println("");
+//
+//      /* Wait the specified delay before requesting new data */
+//      delay(BNO055_SAMPLERATE_DELAY_MS);
+//    }
+//  }
+//
+//  Serial.println("\nFully calibrated!");
+//  Serial.println("--------------------------------");
+//  Serial.println("Calibration Results: ");
+//  adafruit_bno055_offsets_t newCalib;
+//  bno.getSensorOffsets(newCalib);
+//  displaySensorOffsets(newCalib);
+//
+//  Serial.println("\n\nStoring calibration data to EEPROM...");
+//
+//  eeAddress = 0;
+//  bno.getSensor(&sensor);
+//  bnoID = sensor.sensor_id;
+//
+//  EEPROM.put(eeAddress, bnoID);
+//
+//  eeAddress += sizeof(long);
+//  EEPROM.put(eeAddress, newCalib);
+//  Serial.println("Data stored to EEPROM.");
+//
+//  Serial.println("\n--------------------------------\n");
+//  delay(500);
+  
 }
 
 uint8_t  b;
 int avail;
 int avail2;
+int avail3;
 
 uint8_t terabee1_send_buffer[1024];
 uint8_t terabee2_send_buffer[1024];
+uint8_t terabee3_send_buffer[1024];
 uint8_t lidar_send_buffer[1024];
 uint8_t imu_send_buffer[1024];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, 1024);
   Serial4.write(send_buffer, written);
-  //Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
+  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
 void loop() {
@@ -151,32 +396,10 @@ void loop() {
         Serial.print(": ");
         Serial.println(terabee1_data[i]);
       }
-      //IMU Vectors
-        imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-        imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-        imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-        imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-      //IMU Code
-      Serial.print("X: ");
-      Serial.print(gyro.x());
-      Serial.print(" Y: ");
-      Serial.print(gyro.y());
-      Serial.print(" Z: ");
-      Serial.print(gyro.z());
-      Serial.println("");
-
-      imu_data[0] = (int)gyro.x();
-      imu_data[1] = (int)gyro.y();
-      imu_data[2] = (int)gyro.z();
-      imu_data[3] = (int)lin_accel.x();
-      imu_data[4] = (int)lin_accel.y();
-      imu_data[5] = (int)lin_accel.z();
-      convert_b16_to_b8(imu_data, imu_databuffer, 12);
     }
   }
-
-//  // Terabee 2 code
   
+  // Terabee 2 code
   avail2 = Serial2.available();
   if (avail2 > 0) {
     if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
@@ -185,28 +408,6 @@ void loop() {
       Serial2.readBytes(terabee2_databuffer, 16);
       state2 = MSG_INIT;
       convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-      imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-      imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-      imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-      imu_data[0] = (int)gyro.x();
-      imu_data[1] = (int)gyro.y();
-      imu_data[2] = (int)gyro.z();
-      imu_data[3] = (int)lin_accel.x();
-      imu_data[4] = (int)lin_accel.y();
-      imu_data[5] = (int)lin_accel.z();
-//      Serial.print("X: ");
-//      Serial.print(gyro.x());
-//      Serial.print(" Y: ");
-//      Serial.print(gyro.y());
-//      Serial.print(" Z: ");
-//      Serial.print(gyro.z());
-//      Serial.println("");
-      convert_b16_to_b8(imu_data, imu_databuffer, 12);
-      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-      send("LDR", lidar_databuffer, 200, lidar_send_buffer);
-      send("IMU", imu_databuffer, 12, imu_send_buffer);
       for (int i = 0; i < 8; i++) {
         Serial.print("Sensor2 ");
         Serial.print(i);
@@ -216,8 +417,56 @@ void loop() {
     }
   }
   
-//  
-//  //Lidar Code
+avail3 = Serial5.available();
+  if (avail3 > 0) {
+    if (state3 == MSG_INIT || state3 == MSG_BEGIN) {
+      find_msg(state3, Serial5);
+    } else if (state3 == MSG_DATA) {
+      Serial5.readBytes(terabee3_databuffer, 16);
+      state3 = MSG_INIT;
+      convert_b8_to_b16(terabee3_databuffer, terabee3_data);
+      // imu code
+//      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+//      imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
+//      imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
+//      imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+//      imu_data[0] = (int)gyro.x();
+//      imu_data[1] = (int)gyro.y();
+//      imu_data[2] = (int)gyro.z();
+//      imu_data[3] = (int)lin_accel.x();
+//      imu_data[4] = (int)lin_accel.y();
+//      imu_data[5] = (int)lin_accel.z();
+
+        sensors_event_t event;
+        bno.getEvent(&event);
+     
+        Serial.print("X: ");
+        Serial.print(event.orientation.x, 4);
+        Serial.print("\tY: ");
+        Serial.print(event.orientation.y, 4);
+        Serial.print("\tZ: ");
+        Serial.print(event.orientation.z, 4);
+        
+        imu_data[0] = (int)event.orientation.x;
+        imu_data[1] = (int)event.orientation.y;
+        imu_data[2] = (int)event.orientation.z;
+      convert_b16_to_b8(imu_data, imu_databuffer, 6);
+      
+      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+      send("LDR", lidar_databuffer, 200, lidar_send_buffer);
+      send("IMU", imu_databuffer, 6, imu_send_buffer);
+      for (int i = 0; i < 8; i++) {
+        Serial.print("Sensor3 ");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(terabee3_data[i]);
+      }
+    }
+  }
+
+  //Lidar Code
   if (IS_OK(lidar.waitPoint())) {
         uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
         uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
@@ -244,11 +493,10 @@ void loop() {
     }
 
      if (lidar_array_index == 50) {
-        Serial.println("HERE");
         convert_b16_to_b8(LidarData, lidar_databuffer,100);
-        for (int i = 0; i < 100; i++){
-          Serial.println(LidarData[i]);
-        }
+//        for (int i = 0; i < 100; i++){
+//          Serial.println(LidarData[i]);
+//        }
         lidar_array_index=0; 
      }   
 }
