@@ -6,7 +6,7 @@ import sys
 Terabee API for use with path_planning. 
 
 """
-sys.path.append('../c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
+sys.path.append('/home/c1c0-main/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
 import R2Protocol2 as r2p
 
 ser = None
@@ -40,6 +40,8 @@ def close_serial():
 def get_array(array_type):
 	"""
 	Description: Returns the specified sensor array using the given parameter
+	Global arrays need to be populated before calling this method otherwise
+	it will return empty arrays.
 	Parameters: String array_type
 	Returns: Array
 	"""
