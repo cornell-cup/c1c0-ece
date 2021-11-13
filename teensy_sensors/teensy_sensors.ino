@@ -35,6 +35,9 @@
 #define RPLIDAR_MOTOR 3 // PWM pin for controlling RPLIDAR motor speed - connect to MOTOCTRL
 #define BNO055_SAMPLERATE_DELAY_MS (100)
 
+#define LIDAR_DATA_POINTS 360
+#define MAX_BUFFER_SIZE 2048
+
 //Terabee Variables
 int state;
 uint8_t terabee1_databuffer[16];
@@ -47,10 +50,10 @@ uint8_t terabee3_databuffer[16];
 uint16_t terabee3_data[8];
 
 //Lidar variables
-uint16_t LidarData[100]; //replace with fixed length and clear/run again if needed
+uint16_t LidarData[LIDAR_DATA_POINTS*2]; //replace with fixed length and clear/run again if needed
 int array_counter = 0;
 const uint16_t zero_b16 = 0;
-uint8_t lidar_databuffer[200];
+uint8_t lidar_databuffer[LIDAR_DATA_POINTS*4];
 int lidar_array_index;
 
 //IMU variables
@@ -367,14 +370,14 @@ int avail;
 int avail2;
 int avail3;
 
-uint8_t terabee1_send_buffer[1024];
-uint8_t terabee2_send_buffer[1024];
-uint8_t terabee3_send_buffer[1024];
-uint8_t lidar_send_buffer[1024];
-uint8_t imu_send_buffer[1024];
+uint8_t terabee1_send_buffer[MAX_BUFFER_SIZE];
+uint8_t terabee2_send_buffer[MAX_BUFFER_SIZE];
+uint8_t terabee3_send_buffer[MAX_BUFFER_SIZE];
+uint8_t lidar_send_buffer[MAX_BUFFER_SIZE];
+uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
-  uint32_t written = r2p_encode(type, data, data_len, send_buffer, 1024);
+  uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
   Serial4.write(send_buffer, written);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
@@ -390,12 +393,12 @@ void loop() {
       Serial1.readBytes(terabee1_databuffer, 16);
       state = MSG_INIT;
       convert_b8_to_b16(terabee1_databuffer, terabee1_data);
-      for (int i = 0; i < 8; i++) {
-        Serial.print("Sensor1 ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(terabee1_data[i]);
-      }
+//      for (int i = 0; i < 8; i++) {
+//        Serial.print("Sensor1 ");
+//        Serial.print(i);
+//        Serial.print(": ");
+//        Serial.println(terabee1_data[i]);
+//      }
     }
   }
   
@@ -408,12 +411,12 @@ void loop() {
       Serial2.readBytes(terabee2_databuffer, 16);
       state2 = MSG_INIT;
       convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-      for (int i = 0; i < 8; i++) {
-        Serial.print("Sensor2 ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(terabee2_data[i]);
-      }
+//      for (int i = 0; i < 8; i++) {
+//        Serial.print("Sensor2 ");
+//        Serial.print(i);
+//        Serial.print(": ");
+//        Serial.println(terabee2_data[i]);
+//      }
     }
   }
   
@@ -440,12 +443,12 @@ avail3 = Serial5.available();
         sensors_event_t event;
         bno.getEvent(&event);
      
-        Serial.print("X: ");
-        Serial.print(event.orientation.x, 4);
-        Serial.print("\tY: ");
-        Serial.print(event.orientation.y, 4);
-        Serial.print("\tZ: ");
-        Serial.print(event.orientation.z, 4);
+//        Serial.print("X: ");
+//        Serial.print(event.orientation.x, 4);
+//        Serial.print("\tY: ");
+//        Serial.print(event.orientation.y, 4);
+//        Serial.print("\tZ: ");
+//        Serial.print(event.orientation.z, 4);
         
         imu_data[0] = (int)event.orientation.x;
         imu_data[1] = (int)event.orientation.y;
@@ -455,14 +458,14 @@ avail3 = Serial5.available();
       send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
       send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
       send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-      send("LDR", lidar_databuffer, 200, lidar_send_buffer);
+      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
       send("IMU", imu_databuffer, 6, imu_send_buffer);
-      for (int i = 0; i < 8; i++) {
-        Serial.print("Sensor3 ");
-        Serial.print(i);
-        Serial.print(": ");
-        Serial.println(terabee3_data[i]);
-      }
+//      for (int i = 0; i < 8; i++) {
+//        Serial.print("Sensor3 ");
+//        Serial.print(i);
+//        Serial.print(": ");
+//        Serial.println(terabee3_data[i]);
+//      }
     }
   }
 
@@ -473,7 +476,7 @@ avail3 = Serial5.available();
                
         //Serial.println("Angle:" + String(angle));
         //Serial.println("Distance:" + String(distance));
-        if (lidar_array_index <= 49) {
+        if (lidar_array_index <= LIDAR_DATA_POINTS-1) {
           LidarData[lidar_array_index*2] = angle;
           LidarData[lidar_array_index*2+1] = distance;
           lidar_array_index++;
@@ -492,8 +495,8 @@ avail3 = Serial5.available();
       }
     }
 
-     if (lidar_array_index == 50) {
-        convert_b16_to_b8(LidarData, lidar_databuffer,100);
+     if (lidar_array_index == LIDAR_DATA_POINTS) {
+        convert_b16_to_b8(LidarData, lidar_databuffer,LIDAR_DATA_POINTS*2);
 //        for (int i = 0; i < 100; i++){
 //          Serial.println(LidarData[i]);
 //        }
