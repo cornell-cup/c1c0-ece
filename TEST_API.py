@@ -14,6 +14,18 @@ ser = None
 LIDAR_DATA_POINTS = 360
 LIDAR_DATA_LEN = LIDAR_DATA_POINTS * 4
 
+TERABEE_DATA_POINTS = 8
+TERABEE_DATA_LEN = TERABEE_DATA_POINTS * 2
+
+IMU_DATA_POINTS = 3
+IMU_DATA_LEN = IMU_DATA_POINTS * 2
+
+# variables for indexing
+ENCODING_BYTES = 16
+ENCODING_BYTES_TOTAL = ENCODING_BYTES * 5 # 16 EACH FOR LIDAR, IMU, AND 3 TERABEES
+
+TOTAL_BYTES = LIDAR_DATA_LEN + TERABEE_DATA_LEN*3 + IMU_DATA_LEN + ENCODING_BYTES_TOTAL
+
 terabee_array_1 = []
 terabee_array_2 = []
 terabee_array_3 = []
@@ -71,7 +83,7 @@ def decode_arrays():
 	global imu_array
 
 	good_data = False
-	#print("GET ARRAY FUNCTION")
+	print("GET ARRAY FUNCTION")
 	while(not good_data):
 		terabee_array_1 = []
 		terabee_array_2 = []
@@ -79,10 +91,10 @@ def decode_arrays():
 		ldr_array = []
 		imu_array = []
 
-		#print("IN LOOOP")
-		ser_msg = ser.read(22+32+32+32+LIDAR_DATA_LEN+16) #IMU +IR1+IR2+IR3+LIDAR
+		print("IN LOOOP")
+		ser_msg = ser.read(TOTAL_BYTES) #IMU +IR1+IR2+IR3+LIDAR+ENCODING
 		#print(ser_msg)
-		#print("GOT MESSAGE")
+		print("GOT MESSAGE")
 		mtype, data, status = r2p.decode(ser_msg)
 		"""
 		print("TYPE: " + str(mtype))
@@ -91,7 +103,7 @@ def decode_arrays():
 		print("")
 		print("Status: " + str(status))
 		"""
-		#print("TYPE: \n" + str(mtype))
+		print("TYPE: \n" + str(mtype))
 		#print("DATA:" + str(data))
 
 		if (mtype == b'IR\x00\x00'):
@@ -116,7 +128,7 @@ def decode_arrays():
 			good_data = True
 
 		else:
-			#print("NO GOOD")
+			print("NO GOOD")
 			ser.reset_input_buffer()
 
 
@@ -126,12 +138,11 @@ def decode_from_ir(data):
 	is that corresponding to Terabee 1.
 	Returns: Nothing
 	"""
-
-	terabee1_data = data[0:16]
-	terabee2_data = data[32:32+16]
-	terabee3_data = data[64:64+16]
-	ldr_data = data[96:96+LIDAR_DATA_LEN]
-	imu_data = data[96+LIDAR_DATA_LEN+16:]
+	terabee1_data = data[:TERABEE_DATA_LEN]
+	terabee2_data = data[TERABEE_DATA_LEN + ENCODING_BYTES:TERABEE_DATA_LEN + ENCODING_BYTES + TERABEE_DATA_LEN]
+	terabee3_data = data[TERABEE_DATA_LEN*2 + ENCODING_BYTES*2:TERABEE_DATA_LEN*2 + ENCODING_BYTES*2 + TERABEE_DATA_LEN]
+	ldr_data      = data[TERABEE_DATA_LEN*3 + ENCODING_BYTES*3:TERABEE_DATA_LEN*3 + ENCODING_BYTES*3 + LIDAR_DATA_LEN]
+	imu_data      = data[TERABEE_DATA_LEN*3 + LIDAR_DATA_LEN + ENCODING_BYTES*4:TOTAL_BYTES]
 
 	terabee_array_append(terabee1_data, terabee_array_1)
 	terabee_array_append(terabee2_data, terabee_array_2)
@@ -145,13 +156,13 @@ def decode_from_ir2(data):
 	is that corresponding to Terabee 2.
 	Returns: Nothing
 	"""
-
-	terabee2_data = data[0:16]
-	terabee3_data = data[32:32+16]
-	ldr_data = data[64:64+LIDAR_DATA_LEN]
-	imu_data = data[80+ LIDAR_DATA_LEN:80+LIDAR_DATA_LEN+6]
-	terabee1_data = data[86+LIDAR_DATA_LEN+16:]
-
+	terabee2_data = data[:TERABEE_DATA_LEN]
+	terabee3_data = data[TERABEE_DATA_LEN + ENCODING_BYTES:TERABEE_DATA_LEN + ENCODING_BYTES + TERABEE_DATA_LEN]
+	ldr_data      = data[TERABEE_DATA_LEN*2 + ENCODING_BYTES*2:TERABEE_DATA_LEN*2 + ENCODING_BYTES*2 + LIDAR_DATA_LEN]
+	imu_data      = data[TERABEE_DATA_LEN*2 + LIDAR_DATA_LEN + ENCODING_BYTES*3:
+						 TERABEE_DATA_LEN*2 + LIDAR_DATA_LEN + ENCODING_BYTES*3 + IMU_DATA_LEN]
+	terabee1_data = data[TERABEE_DATA_LEN*2 + LIDAR_DATA_LEN + ENCODING_BYTES*4 + IMU_DATA_LEN:TOTAL_BYTES]
+	
 	terabee_array_append(terabee1_data, terabee_array_1)
 	terabee_array_append(terabee2_data, terabee_array_2)
 	terabee_array_append(terabee3_data, terabee_array_3)
@@ -163,13 +174,15 @@ def decode_from_ir3(data):
 	Description: Function that decodes the data if the received mtype
 	is that corresponding to Terabee 3.
 	Returns: Nothing
-	"""
-
-	terabee3_data = data[0:16]
-	ldr_data = data[32:32+LIDAR_DATA_LEN]
-	imu_data = data[48+LIDAR_DATA_LEN:48+LIDAR_DATA_LEN+12]
-	terabee1_data = data[70+LIDAR_DATA_LEN:70+LIDAR_DATA_LEN+16]
-	terabee2_data = data[86+LIDAR_DATA_LEN+16:]
+	"""	
+	terabee3_data = data[:TERABEE_DATA_LEN]
+	ldr_data      = data[TERABEE_DATA_LEN + ENCODING_BYTES:TERABEE_DATA_LEN + ENCODING_BYTES + LIDAR_DATA_LEN]
+	imu_data      = data[TERABEE_DATA_LEN + LIDAR_DATA_LEN + ENCODING_BYTES*2:
+						 TERABEE_DATA_LEN + LIDAR_DATA_LEN + ENCODING_BYTES*2 + IMU_DATA_LEN]
+	terabee1_data = data[TERABEE_DATA_LEN + LIDAR_DATA_LEN + IMU_DATA_LEN + ENCODING_BYTES*3:
+						 TERABEE_DATA_LEN + LIDAR_DATA_LEN + IMU_DATA_LEN + ENCODING_BYTES*3 + TERABEE_DATA_LEN]
+	terabee2_data = data[TERABEE_DATA_LEN*2 + LIDAR_DATA_LEN + IMU_DATA_LEN + ENCODING_BYTES*4:
+						 TOTAL_BYTES]
 
 	terabee_array_append(terabee1_data, terabee_array_1)
 	terabee_array_append(terabee2_data, terabee_array_2)
@@ -184,12 +197,13 @@ def decode_from_ldr(data):
 	is that corresponding to LIDAR.
 	Returns: Nothing
 	"""
-
-	ldr_data = data[0:LIDAR_DATA_LEN]
-	imu_data = data[16+LIDAR_DATA_LEN:16+LIDAR_DATA_LEN+6]
-	terabee1_data = data[38+LIDAR_DATA_LEN:38+LIDAR_DATA_LEN+16]
-	terabee2_data = data[70+LIDAR_DATA_LEN:70+LIDAR_DATA_LEN+16]
-	terabee3_data = data[86+LIDAR_DATA_LEN+16:]
+	ldr_data      = data[:LIDAR_DATA_LEN]
+	imu_data      = data[LIDAR_DATA_LEN + ENCODING_BYTES:LIDAR_DATA_LEN + ENCODING_BYTES + IMU_DATA_LEN]
+	terabee1_data = data[LIDAR_DATA_LEN + IMU_DATA_LEN + ENCODING_BYTES*2 :
+						 LIDAR_DATA_LEN + IMU_DATA_LEN + ENCODING_BYTES*2 + TERABEE_DATA_LEN]
+	terabee2_data = data[LIDAR_DATA_LEN + IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*3:
+						 LIDAR_DATA_LEN + IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*3 + TERABEE_DATA_LEN]
+	terabee3_data = data[LIDAR_DATA_LEN + IMU_DATA_LEN + TERABEE_DATA_LEN*3 + ENCODING_BYTES*4:]
 
 	terabee_array_append(terabee1_data, terabee_array_1)
 	terabee_array_append(terabee2_data, terabee_array_2)
@@ -197,20 +211,20 @@ def decode_from_ldr(data):
 	lidar_tuple_array_append(ldr_data, ldr_array)
 	imu_array_append(imu_data, imu_array)
 
-
 def decode_from_imu(data):
 	"""
 	Description: Function that decodes the data if the received mtype
 	is that corresponding to IMU.
 	Parameters:
 	Returns: Nothing
-	"""
-
-	imu_data = data[0:6]
-	terabee1_data = data[22:22+16]
-	terabee2_data = data[54:54+16]
-	terabee3_data = data[86:86+16]
-	ldr_data = data[102+16:]
+	"""	
+	imu_data      = data[:IMU_DATA_LEN]
+	terabee1_data = data[IMU_DATA_LEN + ENCODING_BYTES:IMU_DATA_LEN + ENCODING_BYTES + TERABEE_DATA_LEN]
+	terabee2_data = data[IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*2:
+						 IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*2 + TERABEE_DATA_LEN]
+	terabee3_data = data[IMU_DATA_LEN + TERABEE_DATA_LEN*2 + ENCODING_BYTES*3:
+						 IMU_DATA_LEN + TERABEE_DATA_LEN*2 + ENCODING_BYTES*3:]
+	ldr_data      = data[IMU_DATA_LEN + TERABEE_DATA_LEN*3 + ENCODING_BYTES*4:]
 
 	terabee_array_append(terabee1_data, terabee_array_1)
 	terabee_array_append(terabee2_data, terabee_array_2)
@@ -264,12 +278,12 @@ if __name__ == '__main__':
 
 	try:
 		start = time.time()
-		for i in range(20):
+		while True:
 			decode_arrays()
-			print(i)
+			#print(i)
 			ldr = get_array('LDR')
 			print(ldr)
-			raise Exception
+			#raise Exception
 			tb1 = get_array('TB1')
 			tb2 = get_array('TB2')
 			tb3 = get_array('TB3')
