@@ -61,6 +61,16 @@ uint8_t imu_databuffer[6];
 uint16_t imu_data[3];
 bool foundCalib;
 
+//Variables to Read From Jetson
+int permission;
+uint8_t read_buffer[17];
+uint32_t read_buffer_len = 17;
+uint16_t read_checksum;
+char read_type[4];
+uint8_t read_data[1];
+uint32_t read_data_len = 1;
+
+
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
 RPLidar lidar; // Instantiate lidar
@@ -112,25 +122,6 @@ void displaySensorDetails(void)
 {
   sensor_t sensor;
   bno.getSensor(&sensor);
-  Serial.println("------------------------------------");
-  Serial.print("Sensor:       ");
-  Serial.println(sensor.name);
-  Serial.print("Driver Ver:   ");
-  Serial.println(sensor.version);
-  Serial.print("Unique ID:    ");
-  Serial.println(sensor.sensor_id);
-  Serial.print("Max Value:    ");
-  Serial.print(sensor.max_value);
-  Serial.println(" xxx");
-  Serial.print("Min Value:    ");
-  Serial.print(sensor.min_value);
-  Serial.println(" xxx");
-  Serial.print("Resolution:   ");
-  Serial.print(sensor.resolution);
-  Serial.println(" xxx");
-  Serial.println("------------------------------------");
-  Serial.println("");
-  delay(500);
 }
 
 /**************************************************************************/
@@ -144,17 +135,6 @@ void displaySensorStatus(void)
   uint8_t system_status, self_test_results, system_error;
   system_status = self_test_results = system_error = 0;
   bno.getSystemStatus(&system_status, &self_test_results, &system_error);
-
-  /* Display the results in the Serial Monitor */
-  Serial.println("");
-  Serial.print("System Status: 0x");
-  Serial.println(system_status, HEX);
-  Serial.print("Self Test:     0x");
-  Serial.println(self_test_results, HEX);
-  Serial.print("System Error:  0x");
-  Serial.println(system_error, HEX);
-  Serial.println("");
-  delay(500);
 }
 
 /**************************************************************************/
@@ -455,17 +435,37 @@ avail3 = Serial5.available();
         imu_data[2] = (int)event.orientation.z;
       convert_b16_to_b8(imu_data, imu_databuffer, 6);
       
-      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
-      send("IMU", imu_databuffer, 6, imu_send_buffer);
+//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
+//      send("IMU", imu_databuffer, 6, imu_send_buffer);
 //      for (int i = 0; i < 8; i++) {
 //        Serial.print("Sensor3 ");
 //        Serial.print(i);
 //        Serial.print(": ");
 //        Serial.println(terabee3_data[i]);
 //      }
+    }
+  }
+//  int permission;
+//uint8_t read_buffer[17];
+//uint32_t read_buffer_len = 17;
+//uint16_t* read_checksum;
+//char read_type[5];
+//uint8_t read_data[1];
+//uint32_t* read_data_len = 1;
+
+  while(true) {
+    Serial.println("HERE2");
+    if (Serial4.available() > 0){
+      Serial4.readBytes(read_buffer,read_buffer_len);
+      
+//      for(int i = 0; i < 17; i++)
+//        Serial.println(read_buffer[i]);
+      r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
+      Serial.println("HERE1");
+      Serial.println(read_data[0]);
     }
   }
 
