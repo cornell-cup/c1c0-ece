@@ -6,7 +6,7 @@ import time
 Terabee API for use with path_planning. 
 
 """
-sys.path.append('../c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
+sys.path.append('/home/c1c0-main/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
 import R2Protocol2 as r2p
 
 ser = None
@@ -76,6 +76,7 @@ def decode_arrays():
 	"""
 	Description: Checks to see if the mtype bit is a valid type and then
 	calls the function to decode it based on the type indicated.
+	Functions using API must call this to update global arrays
 	Returns: Nothing
 
 	"""
@@ -267,9 +268,19 @@ def lidar_tuple_array_append(data, target_array):
 		angle_lsbs = data[i+1]
 		distance_msbs = data[i+2]
 		distance_lsbs = data[i+3]
-		angle = angle_msbs<<8 | angle_lsbs
+		angle = angle_msbs<<8 | angle_lsbsencode
 		distance = distance_msbs<<8 | distance_lsbs
 		target_array.append((angle,distance))
+		
+def sensor_permissions (send_permission):
+	"""
+	Parameter: send_permission is either a 0 or 1. 1 if sensors should send data
+	0 if sensors should cease to send data. 
+	"""
+	send_message = r2p.encode(bytes("SEND","utf-8"),bytearray(send_permission))
+	ser.write(send_message)
+	print(send_message)
+	
 
 if __name__ == '__main__':
 	init_serial('/dev/ttyTHS1', 115200)
@@ -277,6 +288,7 @@ if __name__ == '__main__':
 	#print("STARTED")
 
 	try:
+		"""
 		start = time.time()
 		while True:
 			decode_arrays()
@@ -290,6 +302,9 @@ if __name__ == '__main__':
 			imu = get_array('IMU')
 		print(f"Elapsed time for 20 iters is {time.time() - start}")
 			#print(ldr)
-
+		"""
+		while(True):
+			sensor_permissions(1)
+			time.sleep(1)
 	except KeyboardInterrupt:
 		ser.close()
