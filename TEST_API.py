@@ -268,7 +268,7 @@ def lidar_tuple_array_append(data, target_array):
 		angle_lsbs = data[i+1]
 		distance_msbs = data[i+2]
 		distance_lsbs = data[i+3]
-		angle = angle_msbs<<8 | angle_lsbsencode
+		angle = angle_msbs<<8 | angle_lsbs
 		distance = distance_msbs<<8 | distance_lsbs
 		target_array.append((angle,distance))
 		
@@ -277,7 +277,7 @@ def sensor_permissions (send_permission):
 	Parameter: send_permission is either a 0 or 1. 1 if sensors should send data
 	0 if sensors should cease to send data. 
 	"""
-	send_message = r2p.encode(bytes("SEND","utf-8"),bytearray(send_permission))
+	send_message = r2p.encode(bytes("SND","utf-8"),bytearray([send_permission]))
 	ser.write(send_message)
 	print(send_message)
 	
@@ -288,23 +288,40 @@ if __name__ == '__main__':
 	#print("STARTED")
 
 	try:
-		"""
 		start = time.time()
+		want = 0
 		while True:
-			decode_arrays()
-			#print(i)
-			ldr = get_array('LDR')
-			print(ldr)
-			#raise Exception
-			tb1 = get_array('TB1')
-			tb2 = get_array('TB2')
-			tb3 = get_array('TB3')
-			imu = get_array('IMU')
-		print(f"Elapsed time for 20 iters is {time.time() - start}")
-			#print(ldr)
-		"""
-		while(True):
-			sensor_permissions(1)
-			time.sleep(1)
+			if want%5!=0:
+				print("GOT")
+				decode_arrays()
+				#print(i)
+				ldr = get_array('LDR')
+				print(ldr)
+				#raise Exception
+				tb1 = get_array('TB1')
+				tb2 = get_array('TB2')
+				tb3 = get_array('TB3')
+				imu = get_array('IMU')
+				sensor_permissions(0)
+			else:
+				print("NOT GOT")
+				sensor_permissions(1)
+			want+=1
+		
+		# ~ sensor_permissions(1)	
+		# ~ while True:
+			# ~ #sensor_permissions(1)
+			# ~ if ser.in_waiting:
+				# ~ decode_arrays()
+				# ~ #print(i)
+				# ~ ldr = get_array('LDR')
+				# ~ #raise Exception
+				# ~ tb1 = get_array('TB1')
+				# ~ tb2 = get_array('TB2')
+				# ~ tb3 = get_array('TB3')
+				# ~ print(tb3)
+				# ~ imu = get_array('IMU')
+	
+
 	except KeyboardInterrupt:
 		ser.close()
