@@ -63,12 +63,14 @@ bool foundCalib;
 
 //Variables to Read From Jetson
 int permission;
+bool waitingForPermission = 1;
 uint8_t read_buffer[17];
 uint32_t read_buffer_len = 17;
 uint16_t read_checksum;
 char read_type[4];
-uint8_t read_data[1];
+uint8_t read_data[1] = {0};
 uint32_t read_data_len = 1;
+int count;
 
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
@@ -400,7 +402,7 @@ void loop() {
     }
   }
   
-avail3 = Serial5.available();
+  avail3 = Serial5.available();
   if (avail3 > 0) {
     if (state3 == MSG_INIT || state3 == MSG_BEGIN) {
       find_msg(state3, Serial5);
@@ -420,8 +422,8 @@ avail3 = Serial5.available();
 //      imu_data[4] = (int)lin_accel.y();
 //      imu_data[5] = (int)lin_accel.z();
 
-        sensors_event_t event;
-        bno.getEvent(&event);
+      sensors_event_t event;
+      bno.getEvent(&event);
      
 //        Serial.print("X: ");
 //        Serial.print(event.orientation.x, 4);
@@ -430,9 +432,9 @@ avail3 = Serial5.available();
 //        Serial.print("\tZ: ");
 //        Serial.print(event.orientation.z, 4);
         
-        imu_data[0] = (int)event.orientation.x;
-        imu_data[1] = (int)event.orientation.y;
-        imu_data[2] = (int)event.orientation.z;
+      imu_data[0] = (int)event.orientation.x;
+      imu_data[1] = (int)event.orientation.y;
+      imu_data[2] = (int)event.orientation.z;
       convert_b16_to_b8(imu_data, imu_databuffer, 6);
       
 //      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
@@ -456,18 +458,9 @@ avail3 = Serial5.available();
 //uint8_t read_data[1];
 //uint32_t* read_data_len = 1;
 
-  while(true) {
-    Serial.println("HERE2");
-    if (Serial4.available() > 0){
-      Serial4.readBytes(read_buffer,read_buffer_len);
-      
-//      for(int i = 0; i < 17; i++)
-//        Serial.println(read_buffer[i]);
-      r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
-      Serial.println("HERE1");
-      Serial.println(read_data[0]);
-    }
-  }
+//Serial.println(read_data[0]);
+//Serial.println(Serial4.available());
+
 
   //Lidar Code
   if (IS_OK(lidar.waitPoint())) {
@@ -482,7 +475,7 @@ avail3 = Serial5.available();
           lidar_array_index++;
           }
         }
-     else {
+    else {
       
       // try to detect RPLIDAR... 
       rplidar_response_device_info_t info;
@@ -495,11 +488,41 @@ avail3 = Serial5.available();
       }
     }
 
-     if (lidar_array_index == LIDAR_DATA_POINTS) {
+    if (lidar_array_index == LIDAR_DATA_POINTS) {
         convert_b16_to_b8(LidarData, lidar_databuffer,LIDAR_DATA_POINTS*2);
 //        for (int i = 0; i < 100; i++){
 //          Serial.println(LidarData[i]);
 //        }
         lidar_array_index=0; 
-     }   
+    }
+
+        
+    if (Serial4.available() > 0){
+        Serial4.readBytes(read_buffer,read_buffer_len);
+        
+  //      for(int i = 0; i < 17; i++)
+  //        Serial.println(read_buffer[i]);
+        r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
+        Serial.println(read_type);
+        if (strcmp(read_type,"SND") == 0){
+          Serial.println("GOT PERMISSION");
+          permission = read_data[0];
+          Serial.println(permission);
+        }
+     }
+
+    if(permission) {
+      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
+      send("IMU", imu_databuffer, 6, imu_send_buffer);
+      count++;
+      Serial.println("Count: " + String(count));
+    }
+    else {
+      Serial.println("HOLD");
+      //Serial.println(permission);
+      count = 0;
+    }
 }
