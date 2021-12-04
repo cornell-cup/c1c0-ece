@@ -6,7 +6,7 @@ import time
 Terabee API for use with path_planning. 
 
 """
-sys.path.append('/home/c1c0-main/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
+sys.path.append('/home/ccrt/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
 import R2Protocol2 as r2p
 
 ser = None
@@ -284,38 +284,56 @@ def sensor_permissions (send_permission):
 
 if __name__ == '__main__':
 	init_serial('/dev/ttyTHS1', 115200)
+	ser.reset_input_buffer()
 
 	#print("STARTED")
 
 	try:
+		# ~ while True:
+			# ~ decode_arrays()
+			# ~ ldr = get_array('LDR')
+			# ~ print(ldr)
+			# ~ #raise Exception
+			# ~ tb1 = get_array('TB1')
+			# ~ tb2 = get_array('TB2')
+			# ~ tb3 = get_array('TB3')
+			# ~ imu = get_array('IMU')
+		
 		start = time.time()
-		want = 0
+		count = 0
+		want = True
+		sensor_permissions(int(want))
 		while True:
-			if want%5!=0:
-				print("GOT")
-				decode_arrays()
-				#print(i)
-				ldr = get_array('LDR')
-				print(ldr)
-				#raise Exception
-				tb1 = get_array('TB1')
-				tb2 = get_array('TB2')
-				tb3 = get_array('TB3')
-				imu = get_array('IMU')
-				sensor_permissions(0)
+			ser.reset_input_buffer()
+			if want:
+				if ser.in_waiting:
+					decode_arrays()
+					#print(i)
+					ldr = get_array('LDR')
+					#raise Exception
+					tb1 = get_array('TB1')
+					tb2 = get_array('TB2')
+					tb3 = get_array('TB3')
+					print(tb3)
+					imu = get_array('IMU')
 			else:
 				print("NOT GOT")
-				sensor_permissions(1)
-			want+=1
+			count+=1
+			time.sleep(1)
+			if count%5 == 0:
+				sensor_permissions(int(want))
+				want = not want
 		
-		# ~ sensor_permissions(1)	
+		# ~ sensor_permissions(0)
+		# ~ ser.reset_input_buffer()
 		# ~ while True:
 			# ~ #sensor_permissions(1)
+			# ~ #print(ser.in_waiting)
 			# ~ if ser.in_waiting:
+				# ~ print(ser.in_waiting)
 				# ~ decode_arrays()
 				# ~ #print(i)
 				# ~ ldr = get_array('LDR')
-				# ~ #raise Exception
 				# ~ tb1 = get_array('TB1')
 				# ~ tb2 = get_array('TB2')
 				# ~ tb3 = get_array('TB3')
