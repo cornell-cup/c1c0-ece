@@ -62,7 +62,7 @@ uint16_t imu_data[3];
 bool foundCalib;
 
 //Variables to Read From Jetson
-int permission;
+int* permission;
 bool waitingForPermission = 1;
 uint8_t read_buffer[17];
 uint32_t read_buffer_len = 17;
@@ -211,7 +211,7 @@ void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 
 byte mode[4] = {0x00,0x11,0x02,0x4C};
 
-void reset_input_buffer() {
+inline void reset_input_buffer() {
   while (Serial4.available() > 0 ) Serial4.read();
   delay(100);
 }
@@ -350,7 +350,7 @@ void setup() {
 //
 //  Serial.println("\n--------------------------------\n");
 //  delay(500);
-  
+  permission = &(send_data[0]);
 }
 
 uint8_t  b;
@@ -443,21 +443,27 @@ void loop() {
       imu_data[2] = (int)event.orientation.z;
       convert_b16_to_b8(imu_data, imu_databuffer, 6);
 
-      Serial.print("WANT: ");
-      Serial.println(permission);
-    if(permission) {
+
       send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
       send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
       send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
       send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
       send("IMU", imu_databuffer, 6, imu_send_buffer);
-      count++;
-      Serial.println("Count: " + String(count));
-    }
-    else {
-      Serial.println("HOLD");
-      count = 0;
-    }
+//      Serial.print("WANT: ");
+//      Serial.println(*permission);
+//    if(*permission) {
+//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
+//      send("IMU", imu_databuffer, 6, imu_send_buffer);
+//      count++;
+//      Serial.println("Count: " + String(count));
+//    }
+//    else {
+//      Serial.println("HOLD");
+//      count = 0;
+//    }
 //      for (int i = 0; i < 8; i++) {
 //        Serial.print("Sensor3 ");
 //        Serial.print(i);
@@ -504,15 +510,11 @@ void loop() {
 //        }
         lidar_array_index=0; 
     }
-    if (Serial4.available() > 0){
-        Serial4.readBytes(read_buffer,read_buffer_len);
-//        for(int i = 0; i < 17; i++)
-//          Serial.println(read_buffer[i]);
-        r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
-        if (strcmp(read_type,"SND") == 0){
-          Serial.println("GOT PERMISSION");
-          permission = read_data[0];
-          Serial.println(permission);
-        }
-     }
-}
+    
+//    if (Serial4.available() > 0){
+//        Serial4.readBytes(read_buffer,read_buffer_len);
+////        for(int i = 0; i < 17; i++)
+////          Serial.println(read_buffer[i]);
+//        r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
+//     }
+//}
