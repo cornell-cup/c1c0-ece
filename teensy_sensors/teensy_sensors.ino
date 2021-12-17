@@ -57,6 +57,7 @@ uint8_t lidar_databuffer[LIDAR_DATA_POINTS*4];
 int lidar_array_index;
 
 //IMU variables
+sensors_event_t event;
 uint8_t imu_databuffer[6];
 uint16_t imu_data[3];
 bool foundCalib;
@@ -417,27 +418,15 @@ void loop() {
       state3 = MSG_INIT;
       convert_b8_to_b16(terabee3_databuffer, terabee3_data);
       // imu code
-//      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-//      imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-//      imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-//      imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-//      imu_data[0] = (int)gyro.x();
-//      imu_data[1] = (int)gyro.y();
-//      imu_data[2] = (int)gyro.z();
-//      imu_data[3] = (int)lin_accel.x();
-//      imu_data[4] = (int)lin_accel.y();
-//      imu_data[5] = (int)lin_accel.z();
-
-      sensors_event_t event;
-      bno.getEvent(&event);
-     
+        
 //        Serial.print("X: ");
 //        Serial.print(event.orientation.x, 4);
 //        Serial.print("\tY: ");
 //        Serial.print(event.orientation.y, 4);
 //        Serial.print("\tZ: ");
 //        Serial.print(event.orientation.z, 4);
-        
+
+      bno.getEvent(&event);  
       imu_data[0] = (int)event.orientation.x;
       imu_data[1] = (int)event.orientation.y;
       imu_data[2] = (int)event.orientation.z;
@@ -505,9 +494,6 @@ void loop() {
 
     if (lidar_array_index == LIDAR_DATA_POINTS) {
         convert_b16_to_b8(LidarData, lidar_databuffer,LIDAR_DATA_POINTS*2);
-//        for (int i = 0; i < 100; i++){
-//          Serial.println(LidarData[i]);
-//        }
         lidar_array_index=0; 
     }
     
