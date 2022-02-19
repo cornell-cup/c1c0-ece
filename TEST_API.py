@@ -300,45 +300,25 @@ if __name__ == '__main__':
 			# ~ imu = get_array('IMU')
 		
 		start = time.time()
-		count = 0
 		want = True
 		sensor_permissions(int(want))
-		while True:
-			ser.reset_input_buffer()
+		for i in range(5000):
+			want = not want
+			sensor_permissions(int(want))
+			# ~ ser.reset_input_buffer()
 			if want:
 				if ser.in_waiting:
 					decode_arrays()
-					#print(i)
 					ldr = get_array('LDR')
-					#raise Exception
 					tb1 = get_array('TB1')
 					tb2 = get_array('TB2')
 					tb3 = get_array('TB3')
-					print(tb3)
+					print(tb1)
 					imu = get_array('IMU')
-			else:
-				print("NOT GOT")
-			count+=1
+			# ~ else:
+				# ~ print("NOT GOT")
 			time.sleep(1)
-			if count%5 == 0:
-				sensor_permissions(int(want))
-				want = not want
-		
-		# ~ sensor_permissions(0)
-		# ~ ser.reset_input_buffer()
-		# ~ while True:
-			# ~ #sensor_permissions(1)
-			# ~ #print(ser.in_waiting)
-			# ~ if ser.in_waiting:
-				# ~ print(ser.in_waiting)
-				# ~ decode_arrays()
-				# ~ #print(i)
-				# ~ ldr = get_array('LDR')
-				# ~ tb1 = get_array('TB1')
-				# ~ tb2 = get_array('TB2')
-				# ~ tb3 = get_array('TB3')
-				# ~ print(tb3)
-				# ~ imu = get_array('IMU')
+		ser.close()
 	
 
 	except KeyboardInterrupt:
