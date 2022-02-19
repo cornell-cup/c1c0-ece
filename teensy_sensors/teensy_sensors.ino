@@ -39,6 +39,7 @@
 #define MAX_BUFFER_SIZE 2048
 
 //Terabee Variables
+int test_var = 0;
 int state;
 uint8_t terabee1_databuffer[16];
 uint16_t terabee1_data[8];
@@ -57,12 +58,13 @@ uint8_t lidar_databuffer[LIDAR_DATA_POINTS*4];
 int lidar_array_index;
 
 //IMU variables
+sensors_event_t event;
 uint8_t imu_databuffer[6];
 uint16_t imu_data[3];
 bool foundCalib;
 
 //Variables to Read From Jetson
-int permission;
+uint8_t* permission;
 bool waitingForPermission = 1;
 uint8_t read_buffer[17];
 uint32_t read_buffer_len = 17;
@@ -211,7 +213,7 @@ void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 
 byte mode[4] = {0x00,0x11,0x02,0x4C};
 
-void reset_input_buffer() {
+inline void reset_input_buffer() {
   while (Serial4.available() > 0 ) Serial4.read();
   delay(100);
 }
@@ -239,13 +241,13 @@ void setup() {
   Serial.println("");
 
   /* Initialise the sensor */
-  if (!bno.begin())
-  {
-    /* There was a problem detecting the BNO055 ... check your connections */
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-    while (1)
-      ;
-  }
+//  if (!bno.begin())
+//  {
+//    /* There was a problem detecting the BNO055 ... check your connections */
+//    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+//    while (1)
+//      ;
+//  }
 
   int eeAddress = 0;
   long bnoID;
@@ -350,7 +352,7 @@ void setup() {
 //
 //  Serial.println("\n--------------------------------\n");
 //  delay(500);
-  
+  permission = &(read_data[0]);
 }
 
 uint8_t  b;
@@ -417,47 +419,41 @@ void loop() {
       state3 = MSG_INIT;
       convert_b8_to_b16(terabee3_databuffer, terabee3_data);
       // imu code
-//      imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
-//      imu::Vector<3> gyro = bno.getVector(Adafruit_BNO055::VECTOR_GYROSCOPE);
-//      imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_ACCELEROMETER);
-//      imu::Vector<3> lin_accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
-//      imu_data[0] = (int)gyro.x();
-//      imu_data[1] = (int)gyro.y();
-//      imu_data[2] = (int)gyro.z();
-//      imu_data[3] = (int)lin_accel.x();
-//      imu_data[4] = (int)lin_accel.y();
-//      imu_data[5] = (int)lin_accel.z();
-
-      sensors_event_t event;
-      bno.getEvent(&event);
-     
+        
 //        Serial.print("X: ");
 //        Serial.print(event.orientation.x, 4);
 //        Serial.print("\tY: ");
 //        Serial.print(event.orientation.y, 4);
 //        Serial.print("\tZ: ");
 //        Serial.print(event.orientation.z, 4);
-        
+
+      bno.getEvent(&event);  
       imu_data[0] = (int)event.orientation.x;
       imu_data[1] = (int)event.orientation.y;
       imu_data[2] = (int)event.orientation.z;
       convert_b16_to_b8(imu_data, imu_databuffer, 6);
 
-      Serial.print("WANT: ");
-      Serial.println(permission);
-    if(permission) {
-      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
-      send("IMU", imu_databuffer, 6, imu_send_buffer);
-      count++;
-      Serial.println("Count: " + String(count));
-    }
-    else {
-      Serial.println("HOLD");
-      count = 0;
-    }
+
+//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
+//      send("IMU", imu_databuffer, 6, imu_send_buffer);
+//      Serial.print("WANT: ");
+//      Serial.println(*permission);
+//    if(read_data[0]) {
+//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
+//      send("IMU", imu_databuffer, 6, imu_send_buffer);
+////      count++;
+////      Serial.println("Count: " + String(count));
+//    }
+//    else {
+//      Serial.println("HOLD");
+//      count = 0;
+//    }
 //      for (int i = 0; i < 8; i++) {
 //        Serial.print("Sensor3 ");
 //        Serial.print(i);
@@ -499,20 +495,42 @@ void loop() {
 
     if (lidar_array_index == LIDAR_DATA_POINTS) {
         convert_b16_to_b8(LidarData, lidar_databuffer,LIDAR_DATA_POINTS*2);
-//        for (int i = 0; i < 100; i++){
-//          Serial.println(LidarData[i]);
-//        }
         lidar_array_index=0; 
     }
+
+    
     if (Serial4.available() > 0){
         Serial4.readBytes(read_buffer,read_buffer_len);
 //        for(int i = 0; i < 17; i++)
 //          Serial.println(read_buffer[i]);
         r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
-        if (strcmp(read_type,"SND") == 0){
-          Serial.println("GOT PERMISSION");
-          permission = read_data[0];
-          Serial.println(permission);
-        }
+//        Serial.println(read_checksum);
+        if(read_checksum == -1) reset_input_buffer();
+        else test_var++;
+        Serial.println(read_data[0]);
+//        if (read_data[0]) {
+//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
+//      send("IMU", imu_databuffer, 6, imu_send_buffer);
+////      count++;
+////      Serial.println("Count: " + String(count));
+//    }
      }
+     if(!(test_var % 10)){
+//        Serial.println(test_var);
+     }
+
+     if (read_data[0]) {
+      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
+      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
+      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
+      send("IMU", imu_databuffer, 6, imu_send_buffer);
+//      count++;
+//      Serial.println("Count: " + String(count));
+    }
+     
+
 }
