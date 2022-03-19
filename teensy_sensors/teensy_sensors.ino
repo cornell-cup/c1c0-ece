@@ -222,10 +222,10 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);   //Monitor 
   Serial1.begin(115200); //Terabee1
-  Serial2.begin(115200); //Terabee2
+  Serial7.begin(115200); //Terabee2
   Serial3.begin(115200); //Lidar
-  Serial4.begin(115200); //Jetson
-  Serial5.begin(115200); //Terabee3
+  Serial4.begin(115200); //Terabee3
+  Serial5.begin(115200); //Jetson
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
@@ -368,7 +368,7 @@ uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial4.write(send_buffer, written);
+  Serial5.write(send_buffer, written);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
@@ -393,12 +393,12 @@ void loop() {
   }
   
   // Terabee 2 code
-  avail2 = Serial2.available();
+  avail2 = Serial4.available();
   if (avail2 > 0) {
     if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
       find_msg(state2, Serial2);
     } else if (state2 == MSG_DATA) {
-      Serial2.readBytes(terabee2_databuffer, 16);
+      Serial4.readBytes(terabee2_databuffer, 16);
       state2 = MSG_INIT;
       convert_b8_to_b16(terabee2_databuffer, terabee2_data);
 //      for (int i = 0; i < 8; i++) {
@@ -410,12 +410,12 @@ void loop() {
     }
   }
   
-  avail3 = Serial5.available();
+  avail3 = Serial6.available();
   if (avail3 > 0) {
     if (state3 == MSG_INIT || state3 == MSG_BEGIN) {
       find_msg(state3, Serial5);
     } else if (state3 == MSG_DATA) {
-      Serial5.readBytes(terabee3_databuffer, 16);
+      Serial6.readBytes(terabee3_databuffer, 16);
       state3 = MSG_INIT;
       convert_b8_to_b16(terabee3_databuffer, terabee3_data);
       // imu code
@@ -499,8 +499,8 @@ void loop() {
     }
 
     
-    if (Serial4.available() > 0){
-        Serial4.readBytes(read_buffer,read_buffer_len);
+    if (Serial5.available() > 0){
+        Serial5.readBytes(read_buffer,read_buffer_len);
 //        for(int i = 0; i < 17; i++)
 //          Serial.println(read_buffer[i]);
         r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
@@ -522,7 +522,8 @@ void loop() {
 //        Serial.println(test_var);
      }
 
-     if (read_data[0]) {
+//     if (read_data[0]) {
+      if (1) {
       send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
       send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
       send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
