@@ -28,8 +28,8 @@ void setup {
 void loop {
   if (Serial1.available() > 0) {
     Serial1.readBytes(msg_buffer, msg_buffer_len);
-    r2p_decode(msg_buffer, msg_buffer_len, &checksum, type, msg, &msg_len)
+    r2p_decode(msg_buffer, msg_buffer_len, &checksum, type, msg, &msg_len);
+    
+    Serial.println(msg);
   }
-
-  Serial.println(msg);
 }
