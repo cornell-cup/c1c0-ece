@@ -15,10 +15,10 @@ uint8_t msg_send_buffer[MAX_BUFFER_SIZE];
 
 void setup() {
   Serial.begin(9600); // Serial monitor
-  Serial2.begin(115200); // TX1/RX1 
+  Serial1.begin(115200); // TX1/RX1 
 
-  while (Serial2.available() > 0) {
-    Serial2.read();
+  while (Serial1.available() > 0) {
+    Serial1.read();
     delay(100);
   }
 
@@ -29,7 +29,7 @@ void setup() {
 
 void send(char type[5], const uint8_t* msg, uint32_t msg_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, msg, msg_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial2.write(send_buffer, written);
+  Serial1.write(send_buffer, written);
   Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
 }
 
