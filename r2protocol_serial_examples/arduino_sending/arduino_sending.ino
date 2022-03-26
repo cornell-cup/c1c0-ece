@@ -9,31 +9,31 @@
 
 #define MAX_BUFFER_SIZE 2048
 
-char msg[9]
+char msg[9] = "baseball";
 uint8_t msg_data_buffer[8];
 uint8_t msg_send_buffer[MAX_BUFFER_SIZE];
 
-void setup {
+void setup() {
   Serial.begin(9600); // Serial monitor
-  Serial1.begin(115200); // TX1/RX1 
+  Serial2.begin(115200); // TX1/RX1 
 
-  while (Serial1.available() > 0) {
-    Serial1.read();
+  while (Serial2.available() > 0) {
+    Serial2.read();
     delay(100);
   }
 
-  msg = "baseball";
   for(int i = 0; i < 8; i++) {
     msg_data_buffer[i] = (uint8_t) msg[i];
   }
 }
 
 void send(char type[5], const uint8_t* msg, uint32_t msg_len, uint8_t* send_buffer) {
-  uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial1.write(send_buffer, written);
+  uint32_t written = r2p_encode(type, msg, msg_len, send_buffer, MAX_BUFFER_SIZE);
+  Serial2.write(send_buffer, written);
   Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
 }
 
-void loop {
+void loop() {
   send("sprt", msg_data_buffer, 8, msg_send_buffer);
+  delay(1000);
 }
