@@ -7,6 +7,9 @@
 
 import serial
 import time
+import sys
+
+sys.path.append('/home/cornellcup/c1c0-movement/c1c0-movement/Locomotion')
 import R2Protocol2 as r2p
 
 ser = serial.Serial(

@@ -6,6 +6,10 @@
 
 import serial
 import time
+import sys
+
+sys.path.append('/home/cornellcup/c1c0-movement/c1c0-movement/Locomotion')
+#Resolve 'cornellcup' to be the username of this Jetson, make sure c1c0-movement is cloned
 import R2Protocol2 as r2p
 
 ser = serial.Serial(
@@ -21,4 +25,4 @@ while(True):
     ser.write(msg) #Message length will be 24 bytes (See r2p.encode() specification ) 16 header + 8 data bytes
     
     print("Sent message")
-    time.sleep(0.2)
+    time.sleep(1)
