@@ -19,7 +19,7 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <RPLidar.h>
-#include <R2Protocol.h>
+#include "R2Protocol.h"
 #include <EEPROM.h>
 
 #define START1 77
@@ -374,6 +374,7 @@ void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_bu
   pinmode(24, OUTPUT);
   Serial6.begin(38400);
   Serial6.write(send_buffer, written);
+  delay(500);
   pinmode(24,INPUT);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
@@ -526,7 +527,7 @@ void loop() {
 
 //     if (read_data[0]) {
       if (1) {
-        delay(500);
+     
       send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
       send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
       send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
