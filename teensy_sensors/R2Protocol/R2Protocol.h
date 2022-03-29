@@ -4,7 +4,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#define R2P_HEADER_SIZE 16
+/** This is the size of the encoded buffer without the data field
+ * when typing in the buffer length for the decode function, the buffer length is this field + data_len
+*/
+#define R2P_HEADER_SIZE 17 
 
 static const uint16_t r2p_crc16_table[256] = {
   0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
@@ -40,7 +43,6 @@ static const uint16_t r2p_crc16_table[256] = {
   0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
   0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 };
-
 /**
  * Compute the CRC16 CCITT checksum of data.
  *
@@ -71,7 +73,7 @@ inline uint16_t r2p_crc16(const uint8_t* data, uint32_t len) {
  * @param   buffer_len  Length of preallocated buffer
  * @return  Number of bytes written, -1 if failed
  */
-inline int32_t r2p_encode_nocs(const char type[5], const uint8_t* data, uint32_t data_len, uint8_t* buffer, uint32_t buffer_len) {
+inline int32_t r2p_encode_nocs(const char type[5], uint8_t address, const uint8_t* data, uint32_t data_len, uint8_t* buffer, uint32_t buffer_len) {
   // Make sure the buffer is large enough
   if (buffer_len < data_len + R2P_HEADER_SIZE) {
     return -1;
@@ -85,23 +87,24 @@ inline int32_t r2p_encode_nocs(const char type[5], const uint8_t* data, uint32_t
   // Checksum
   buffer[3] = 0x00;
   buffer[4] = 0x00;
-
+  //address
+  buffer[5] = address;
   // Type
-  memcpy(buffer + 5, type, 4);
+  memcpy(buffer + 6, type, 4);
 
   // Length of data (big endian)
-  buffer[9] = (data_len >> 24) & 0xff;
-  buffer[10] = (data_len >> 16) & 0xff;
-  buffer[11] = (data_len >> 8) & 0xff;
-  buffer[12] = data_len & 0xff;
+  buffer[10] = (data_len >> 24) & 0xff;
+  buffer[11] = (data_len >> 16) & 0xff;
+  buffer[12] = (data_len >> 8) & 0xff;
+  buffer[13] = data_len & 0xff;
 
   // Data
-  memcpy(buffer + 13, data, data_len);
+  memcpy(buffer + 14, data, data_len);
 
   // Ending sequence
-  buffer[data_len + 13] = 0xd2;
-  buffer[data_len + 14] = 0xe2;
-  buffer[data_len + 15] = 0xf2;
+  buffer[data_len + 14] = 0xd2;
+  buffer[data_len + 15] = 0xe2;
+  buffer[data_len + 16] = 0xf2;
 
   return data_len + R2P_HEADER_SIZE;
 }
@@ -116,9 +119,11 @@ inline int32_t r2p_encode_nocs(const char type[5], const uint8_t* data, uint32_t
  * @param   buffer_len  Length of preallocated buffer
  * @return  Number of bytes written, -1 if failed
  */
-inline int32_t r2p_encode(const char type[5], const uint8_t* data, uint32_t data_len, uint8_t* buffer, uint32_t buffer_len) {
+
+//sample call:encode("{type}", 8, reinterpret_cast<const uint8_t*>("{data}"), {data length()},send_buffer[{datalen}],bufferlength)
+inline int32_t r2p_encode(const char type[5],uint8_t address, const uint8_t* data, uint32_t data_len, uint8_t* buffer, uint32_t buffer_len) {
   // Encode without the checksum first
-  uint32_t n = r2p_encode_nocs(type, data, data_len, buffer, buffer_len);
+  uint32_t n = r2p_encode_nocs(type, address, data, data_len, buffer, buffer_len);
   if (n < 0) {
     return -1;
   }
@@ -140,7 +145,8 @@ inline int32_t r2p_encode(const char type[5], const uint8_t* data, uint32_t data
  * @param   data_len  Output length of output data array
  * @return  Number of bytes read, -1 if failed to parse
  */
-inline int32_t r2p_decode_nocs(const uint8_t* buffer, uint32_t buffer_len, uint16_t* checksum, char type[5], uint8_t* data, uint32_t* data_len) {
+
+inline int32_t r2p_decode_nocs(const uint8_t* buffer, uint8_t ID, uint32_t buffer_len, uint16_t* checksum, char type[5], uint8_t* data, uint32_t* data_len, uint16_t* isRequest) {
   // Search for the starting byte
   uint32_t index = 0;
   while (index < buffer_len - 2 && !(buffer[index] == 0xa2 &&
@@ -153,26 +159,29 @@ inline int32_t r2p_decode_nocs(const uint8_t* buffer, uint32_t buffer_len, uint1
   if (buffer_len - index < R2P_HEADER_SIZE) {
     return -1;
   }
-
+  // Save address and check if address is equal to ID
+  uint8_t address = buffer[index + 5];
+  if(address != ID)
+    return -1;
   // Checksum
   *checksum = (buffer[index + 3] << 8) | buffer[index + 4];
 
   // Type
-  memcpy(type, buffer + 5, 4);
+  memcpy(type, buffer + 6, 4);
 
   // Length of data (big endian)
-  *data_len = (buffer[index + 9] << 24) | (buffer[index + 10] << 16) | (buffer[index + 11] << 8) | buffer[index + 12];
+  *data_len = (buffer[index + 10] << 24) | (buffer[index + 11] << 16) | (buffer[index + 12] << 8) | buffer[index + 13];
 
   // Data
-  memcpy(data, buffer + index + 13, *data_len);
+  memcpy(data, buffer + index + 14, *data_len);
 
   // Ending sequence
-  if (buffer[index + *data_len + 13] == 0xd2 && buffer[index + *data_len + 14] == 0xe2 && buffer[index + *data_len + 15] == 0xf2) {
+  if (buffer[index + *data_len + 14] == 0xd2 && buffer[index + *data_len + 15] == 0xe2 && buffer[index + *data_len + 16] == 0xf2) {
     return index + *data_len + R2P_HEADER_SIZE;
   }
+  *isRequest = (strncmp(type, "rqst", 4) == 0);
   return -1;
 }
-
 /**
  * Decode data into preallocated buffers.
  *
@@ -184,9 +193,10 @@ inline int32_t r2p_decode_nocs(const uint8_t* buffer, uint32_t buffer_len, uint1
  * @param   data_len  Output length of output data array
  * @return  Number of bytes read, -1 if failed to parse, -2 if failed checksum
  */
-inline int32_t r2p_decode(const uint8_t* buffer, uint32_t buffer_len, uint16_t* checksum, char type[5], uint8_t* data, uint32_t* data_len) {
+
+inline int32_t r2p_decode(const uint8_t* buffer, uint8_t address, uint32_t buffer_len, uint16_t* checksum, char type[5], uint8_t* data, uint32_t* data_len, uint16_t* isRequest) {
   // Decode without checking the checksum first
-  uint32_t n = r2p_decode_nocs(buffer, buffer_len, checksum, type, data, data_len);
+  uint32_t n = r2p_decode_nocs(buffer, address, buffer_len, checksum, type, data, data_len,isRequest);
   if (n < 0) {
     return -1;
   }
@@ -204,23 +214,26 @@ inline int32_t r2p_decode(const uint8_t* buffer, uint32_t buffer_len, uint16_t* 
   return -2;
 }
 
+
+
 // FSM States
 #define R2PF_STATE_START 0
 #define R2PF_STATE_CHECKSUM 10
+#define R2PF_STATE_ADDRESS 18
 #define R2PF_STATE_TYPE 20
 #define R2PF_STATE_LENGTH 30
 #define R2PF_STATE_DATA 40
 #define R2PF_STATE_END 50
 #define R2PF_STATE_DONE 60
-
+//definition of message structure
 typedef struct {
   int16_t state;
   uint8_t* buffer;
   uint32_t buffer_len;
   uint32_t buffer_index;
   uint16_t crc;
-
   uint16_t checksum;
+  uint8_t address;
   char type[4];
   uint8_t* data;
   uint32_t data_len;
@@ -232,8 +245,8 @@ inline r2pf_t r2pf_init(uint8_t* buffer, uint32_t buffer_len) {
   // TODO Check buffer length
   return (r2pf_t) { R2PF_STATE_START, buffer, buffer_len, 0, 0xffff };
 }
-
-inline void r2pf_read(r2pf_t* fsm, uint8_t read) {
+// read(state machine, data being read in, Adress of specific microcontroller)
+inline void r2pf_read(r2pf_t* fsm, uint8_t read, uint8_t ID) {
   uint8_t* buffer = fsm->buffer;
   switch (fsm->state) {
     default:
@@ -258,22 +271,32 @@ inline void r2pf_read(r2pf_t* fsm, uint8_t read) {
       fsm->buffer_index++;
       if (fsm->buffer_index == 5) {
         fsm->checksum = (buffer[3] << 8) | buffer[4];
-        fsm->state = R2PF_STATE_TYPE;
+        fsm->state = R2PF_STATE_ADDRESS;
       }
+      break;
+    case R2PF_STATE_ADDRESS:
+      buffer[fsm->buffer_index] = read;
+      fsm->buffer_index++;
+      if (fsm->buffer_index == 9) {
+        fsm->address = buffer[5];
+        fsm->state = R2PF_STATE_TYPE;
+        if (buffer[5] != ID)
+            fsm->state = R2PF_STATE_START;
+      } 
       break;
     case R2PF_STATE_TYPE:
       buffer[fsm->buffer_index] = read;
       fsm->buffer_index++;
-      if (fsm->buffer_index == 9) {
-        memcpy(fsm->type, buffer + 5, 4);
+      if (fsm->buffer_index == 10) {
+        memcpy(fsm->type, buffer + 6, 4);
         fsm->state = R2PF_STATE_LENGTH;
       }
       break;
     case R2PF_STATE_LENGTH:
       buffer[fsm->buffer_index] = read;
       fsm->buffer_index++;
-      if (fsm->buffer_index == 13) {
-        fsm->data_len = (buffer[9] << 24) | (buffer[10] << 16) | (buffer[11] << 8) | buffer[12];
+      if (fsm->buffer_index == 14) {
+        fsm->data_len = (buffer[10] << 24) | (buffer[11] << 16) | (buffer[12] << 8) | buffer[13];
         if (fsm->data_len > 0) {
           fsm->state = R2PF_STATE_DATA;
         }
@@ -288,8 +311,8 @@ inline void r2pf_read(r2pf_t* fsm, uint8_t read) {
         fsm->crc = (fsm->crc << 8) ^ r2p_crc16_table[((fsm->crc >> 8) ^ read) & 0xff];
       }
       fsm->buffer_index++;
-      if (fsm->buffer_index == 13 + fsm->data_len) {
-        fsm->data = buffer + 13;
+      if (fsm->buffer_index == 14 + fsm->data_len) {
+        fsm->data = buffer + 14;
         fsm->state = R2PF_STATE_END;
 
         // Avoid a crc of 0
@@ -299,12 +322,12 @@ inline void r2pf_read(r2pf_t* fsm, uint8_t read) {
       }
       break;
     case R2PF_STATE_END:
-      if ((fsm->buffer_index == fsm->data_len + 13 && read == 0xd2)
-          || (fsm->buffer_index == fsm->data_len + 14 && read == 0xe2)
-          || (fsm->buffer_index == fsm->data_len + 15 && read == 0xf2)) {
+      if ((fsm->buffer_index == fsm->data_len + 14 && read == 0xd2)
+          || (fsm->buffer_index == fsm->data_len + 15 && read == 0xe2)
+          || (fsm->buffer_index == fsm->data_len + 16 && read == 0xf2)) {
         buffer[fsm->buffer_index] = read;
         fsm->buffer_index++;
-        if (fsm->buffer_index == fsm->data_len + 16) {
+        if (fsm->buffer_index == fsm->data_len + 17) {
           // TODO Check CRC
           fsm->state = R2PF_STATE_START;
           fsm->buffer_index = 0;

@@ -214,7 +214,7 @@ void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 byte mode[4] = {0x00,0x11,0x02,0x4C};
 
 inline void reset_input_buffer() {
-  while (Serial4.available() > 0 ) Serial4.read();
+  while (Serial6.available() > 0 ) Serial6.read();
   delay(100);
 }
 
@@ -225,7 +225,9 @@ void setup() {
   Serial7.begin(115200); //Terabee2
   Serial3.begin(115200); //Lidar
   Serial4.begin(115200); //Terabee3
-  Serial5.begin(115200); //Jetson
+  Serial6.begin(115200); //Jetson
+  pinMode(24, INPUT);
+  
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
@@ -233,8 +235,9 @@ void setup() {
   delay(500); // take some time
 
   Serial1.write(mode, 4); // write the command for hex output
-  Serial2.write(mode, 4); // write the command for hex output
-  Serial5.write(mode, 4);
+  Serial4.write(mode, 4); // write the command for hex output
+  Serial7.write(mode, 4);
+  
   reset_input_buffer();
 
   Serial.println("Orientation Sensor Test");
@@ -367,12 +370,22 @@ uint8_t lidar_send_buffer[MAX_BUFFER_SIZE];
 uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
-  uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial5.write(send_buffer, written);
+  uint32_t written = r2p_encode(type, 6, data, data_len, send_buffer, MAX_BUFFER_SIZE);  // Address of 6
+  pinmode(24, OUTPUT);
+  Serial6.begin(38400);
+  Serial6.write(send_buffer, written);
+  pinmode(24,INPUT);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
 void loop() {
+  Serial.print("TB 1: ");
+  Serial.println(Serial1.available());
+  Serial.print("TB 2: ");
+  Serial.println(Serial4.available());
+  Serial.print("TB 3: ");
+  Serial.println(Serial7.available());
+  
  
   //Terabee 1 Code
   avail = Serial1.available();
@@ -391,12 +404,12 @@ void loop() {
 //      }
     }
   }
-  
+
   // Terabee 2 code
   avail2 = Serial4.available();
   if (avail2 > 0) {
     if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-      find_msg(state2, Serial2);
+      find_msg(state2, Serial4);
     } else if (state2 == MSG_DATA) {
       Serial4.readBytes(terabee2_databuffer, 16);
       state2 = MSG_INIT;
@@ -409,13 +422,14 @@ void loop() {
 //      }
     }
   }
+
   
-  avail3 = Serial6.available();
+  avail3 = Serial7.available();
   if (avail3 > 0) {
     if (state3 == MSG_INIT || state3 == MSG_BEGIN) {
-      find_msg(state3, Serial5);
+      find_msg(state3, Serial7);
     } else if (state3 == MSG_DATA) {
-      Serial6.readBytes(terabee3_databuffer, 16);
+      Serial7.readBytes(terabee3_databuffer, 16);
       state3 = MSG_INIT;
       convert_b8_to_b16(terabee3_databuffer, terabee3_data);
       // imu code
@@ -441,19 +455,6 @@ void loop() {
 //      send("IMU", imu_databuffer, 6, imu_send_buffer);
 //      Serial.print("WANT: ");
 //      Serial.println(*permission);
-//    if(read_data[0]) {
-//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
-//      send("IMU", imu_databuffer, 6, imu_send_buffer);
-////      count++;
-////      Serial.println("Count: " + String(count));
-//    }
-//    else {
-//      Serial.println("HOLD");
-//      count = 0;
-//    }
 //      for (int i = 0; i < 8; i++) {
 //        Serial.print("Sensor3 ");
 //        Serial.print(i);
@@ -467,13 +468,14 @@ void loop() {
 
 
   //Lidar Code
+//  Serial.print("LIDAR: ");
 //  Serial.println(IS_OK(lidar.waitPoint()));
   if (IS_OK(lidar.waitPoint())) {
         uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
         uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
                
-        //Serial.println("Angle:" + String(angle));
-        //Serial.println("Distance:" + String(distance));
+//        Serial.println("Angle:" + String(angle));
+//        Serial.println("Distance:" + String(distance));
         if (lidar_array_index <= LIDAR_DATA_POINTS-1) {
           LidarData[lidar_array_index*2] = angle;
           LidarData[lidar_array_index*2+1] = distance;
@@ -499,8 +501,8 @@ void loop() {
     }
 
     
-    if (Serial5.available() > 0){
-        Serial5.readBytes(read_buffer,read_buffer_len);
+    if (Serial6.available() > 0){
+        Serial6.readBytes(read_buffer,read_buffer_len);
 //        for(int i = 0; i < 17; i++)
 //          Serial.println(read_buffer[i]);
         r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
@@ -524,6 +526,7 @@ void loop() {
 
 //     if (read_data[0]) {
       if (1) {
+        delay(500);
       send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
       send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
       send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
