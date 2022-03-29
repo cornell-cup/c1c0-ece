@@ -15,7 +15,7 @@ uint8_t msg[8];
 uint32_t msg_len;
 
 
-void setup {
+void setup() {
   Serial.begin(9600); // Serial monitor
   Serial1.begin(115200); // TX1/RX1 
 
@@ -25,11 +25,16 @@ void setup {
   }
 }
 
-void loop {
+void loop() {
   if (Serial1.available() > 0) {
     Serial1.readBytes(msg_buffer, msg_buffer_len);
     r2p_decode(msg_buffer, msg_buffer_len, &checksum, type, msg, &msg_len);
-    
-    Serial.println(msg);
+
+    for(int i = 0; i < msg_len; i++) {
+      Serial.print((char) msg[i]);
+    }
+    Serial.println();
   }
+  
 }
+
