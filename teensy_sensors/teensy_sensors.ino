@@ -371,11 +371,11 @@ uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, 6, data, data_len, send_buffer, MAX_BUFFER_SIZE);  // Address of 6
-  pinmode(24, OUTPUT);
+  pinMode(24, OUTPUT);
   Serial6.begin(38400);
   Serial6.write(send_buffer, written);
   delay(500);
-  pinmode(24,INPUT);
+  pinMode(24,INPUT);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
@@ -506,7 +506,7 @@ void loop() {
         Serial6.readBytes(read_buffer,read_buffer_len);
 //        for(int i = 0; i < 17; i++)
 //          Serial.println(read_buffer[i]);
-        r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
+//        r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
 //        Serial.println(read_checksum);
         if(read_checksum == -1) reset_input_buffer();
         else test_var++;
