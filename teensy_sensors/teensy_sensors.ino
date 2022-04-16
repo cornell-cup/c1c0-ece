@@ -19,7 +19,7 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <RPLidar.h>
-#include "R2Protocol.h"
+#include "R2Protocol2.h"
 #include <EEPROM.h>
 
 #define START1 77
