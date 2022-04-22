@@ -305,8 +305,7 @@ if __name__ == '__main__':
 				tb3 = get_array('TB3')
 				imu = get_array('IMU')
 			
-				# ~ for i in ldr:
-					# ~ print(i)
+				print(tb2)
 			# ~ else:
 				# ~ print("NOT GOT")
 			# ~ time.sleep(1)
