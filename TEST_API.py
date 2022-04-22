@@ -6,8 +6,8 @@ import time
 Terabee API for use with path_planning. 
 
 """
-sys.path.append('/home/ccrt/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
-import R2Protocol2 as r2p
+sys.path.append('/home/cornellcup/c1c0-movement/c1c0-movement/Locomotion/Modified_Bus_Protocol/Jetson') #Might need to be resolved
+import modified_protocol2 as r2p
 
 ser = None
 
@@ -21,7 +21,7 @@ IMU_DATA_POINTS = 3
 IMU_DATA_LEN = IMU_DATA_POINTS * 2
 
 # variables for indexing
-ENCODING_BYTES = 16
+ENCODING_BYTES = 17
 ENCODING_BYTES_TOTAL = ENCODING_BYTES * 5 # 16 EACH FOR LIDAR, IMU, AND 3 TERABEES
 
 TOTAL_BYTES = LIDAR_DATA_LEN + TERABEE_DATA_LEN*3 + IMU_DATA_LEN + ENCODING_BYTES_TOTAL
@@ -93,10 +93,14 @@ def decode_arrays():
 		imu_array = []
 
 		print("IN LOOOP")
+		
+		ser.read_until(b"\xd2\xe2\xf2")
+		time.sleep(0.001)
 		ser_msg = ser.read(TOTAL_BYTES) #IMU +IR1+IR2+IR3+LIDAR+ENCODING
+		
 		#print(ser_msg)
-		print("GOT MESSAGE")
-		mtype, data, status = r2p.decode(ser_msg)
+		#print("GOT MESSAGE")
+		mtype, data, status, addr = r2p.decode(ser_msg)
 		"""
 		print("TYPE: " + str(mtype))
 		print("")
@@ -204,7 +208,7 @@ def decode_from_ldr(data):
 						 LIDAR_DATA_LEN + IMU_DATA_LEN + ENCODING_BYTES*2 + TERABEE_DATA_LEN]
 	terabee2_data = data[LIDAR_DATA_LEN + IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*3:
 						 LIDAR_DATA_LEN + IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*3 + TERABEE_DATA_LEN]
-	terabee3_data = data[LIDAR_DATA_LEN + IMU_DATA_LEN + TERABEE_DATA_LEN*3 + ENCODING_BYTES*4:]
+	terabee3_data = data[LIDAR_DATA_LEN + IMU_DATA_LEN + TERABEE_DATA_LEN*2 + ENCODING_BYTES*4:]
 
 	terabee_array_append(terabee1_data, terabee_array_1)
 	terabee_array_append(terabee2_data, terabee_array_2)
@@ -224,7 +228,7 @@ def decode_from_imu(data):
 	terabee2_data = data[IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*2:
 						 IMU_DATA_LEN + TERABEE_DATA_LEN + ENCODING_BYTES*2 + TERABEE_DATA_LEN]
 	terabee3_data = data[IMU_DATA_LEN + TERABEE_DATA_LEN*2 + ENCODING_BYTES*3:
-						 IMU_DATA_LEN + TERABEE_DATA_LEN*2 + ENCODING_BYTES*3:]
+						 IMU_DATA_LEN + TERABEE_DATA_LEN*3 + ENCODING_BYTES*3:]
 	ldr_data      = data[IMU_DATA_LEN + TERABEE_DATA_LEN*3 + ENCODING_BYTES*4:]
 
 	terabee_array_append(terabee1_data, terabee_array_1)
@@ -271,55 +275,34 @@ def lidar_tuple_array_append(data, target_array):
 		angle = angle_msbs<<8 | angle_lsbs
 		distance = distance_msbs<<8 | distance_lsbs
 		target_array.append((angle,distance))
-		
-def sensor_permissions (send_permission):
+
+def send_token(permission,addr):
 	"""
-	Parameter: send_permission is either a 0 or 1. 1 if sensors should send data
+	Parameter: permission is either a 0 or 1. 1 if sensors should send data
 	0 if sensors should cease to send data. 
 	"""
-	send_message = r2p.encode(bytes("SND","utf-8"),bytearray([send_permission]))
-	ser.write(send_message)
-	print(send_message)
+	msg = r2p.encode(b"SNS", (addr).to_bytes(1,'big'),(permission.to_bytes(1,'big')))
+	ser.write(msg)
 	
 
 if __name__ == '__main__':
-	init_serial('/dev/ttyTHS1', 115200)
+	init_serial('/dev/ttyTHS1', 38400)
 	ser.reset_input_buffer()
 
 	#print("STARTED")
 
 	try:
-		# ~ while True:
-			# ~ decode_arrays()
-			# ~ ldr = get_array('LDR')
-			# ~ print(ldr)
-			# ~ #raise Exception
-			# ~ tb1 = get_array('TB1')
-			# ~ tb2 = get_array('TB2')
-			# ~ tb3 = get_array('TB3')
-			# ~ imu = get_array('IMU')
-		
-		start = time.time()
-		want = True
-		sensor_permissions(int(want))
-		for i in range(5000):
-			want = not want
-			sensor_permissions(int(want))
-			# ~ ser.reset_input_buffer()
-			if want:
-				if ser.in_waiting:
-					decode_arrays()
-					ldr = get_array('LDR')
-					tb1 = get_array('TB1')
-					tb2 = get_array('TB2')
-					tb3 = get_array('TB3')
-					print(tb1)
-					imu = get_array('IMU')
-			# ~ else:
-				# ~ print("NOT GOT")
-			time.sleep(1)
-		ser.close()
+		send_token(1,200)
 	
+		for i in range(100):
+			decode_arrays()
+			ldr = get_array("LDR")
+			for i in ldr:
+				print(i)
+		
+		send_token(0,200)
+		
+		time.sleep(1)
 
 	except KeyboardInterrupt:
 		ser.close()
