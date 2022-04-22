@@ -38,6 +38,8 @@
 #define LIDAR_DATA_POINTS 360
 #define MAX_BUFFER_SIZE 2048
 
+#define SENSORS_ADDRESS 200
+
 //Terabee Variables
 int test_var = 0;
 int state;
@@ -223,9 +225,9 @@ void setup() {
   Serial.begin(9600);   //Monitor 
   Serial1.begin(115200); //Terabee1
   Serial7.begin(115200); //Terabee2
-  Serial3.begin(115200); //Lidar
+  Serial3.begin(38400); //Lidar
   Serial4.begin(115200); //Terabee3
-  Serial6.begin(115200); //Jetson
+  Serial6.begin(38400); //Jetson
   pinMode(24, INPUT);
   
   bno.begin();           //IMU Initialization
@@ -300,61 +302,6 @@ void setup() {
   sensors_event_t event;
   bno.getEvent(&event);
   /* always recal the mag as It goes out of calibration very often */
-//  if (foundCalib)
-//  {
-//    Serial.println("Move sensor slightly to calibrate magnetometers");
-//    while (!bno.isFullyCalibrated())
-//    {
-//      bno.getEvent(&event);
-//      delay(BNO055_SAMPLERATE_DELAY_MS);
-//    }
-//  }
-//  else
-//  {
-//    Serial.println("Please Calibrate Sensor: ");
-//    while (!bno.isFullyCalibrated())
-//    {
-//      bno.getEvent(&event);
-//
-//      Serial.print("X: ");
-//      Serial.print(event.orientation.x, 4);
-//      Serial.print("\tY: ");
-//      Serial.print(event.orientation.y, 4);
-//      Serial.print("\tZ: ");
-//      Serial.print(event.orientation.z, 4);
-//
-//      /* Optional: Display calibration status */
-//      displayCalStatus();
-//
-//      /* New line for the next sample */
-//      Serial.println("");
-//
-//      /* Wait the specified delay before requesting new data */
-//      delay(BNO055_SAMPLERATE_DELAY_MS);
-//    }
-//  }
-//
-//  Serial.println("\nFully calibrated!");
-//  Serial.println("--------------------------------");
-//  Serial.println("Calibration Results: ");
-//  adafruit_bno055_offsets_t newCalib;
-//  bno.getSensorOffsets(newCalib);
-//  displaySensorOffsets(newCalib);
-//
-//  Serial.println("\n\nStoring calibration data to EEPROM...");
-//
-//  eeAddress = 0;
-//  bno.getSensor(&sensor);
-//  bnoID = sensor.sensor_id;
-//
-//  EEPROM.put(eeAddress, bnoID);
-//
-//  eeAddress += sizeof(long);
-//  EEPROM.put(eeAddress, newCalib);
-//  Serial.println("Data stored to EEPROM.");
-//
-//  Serial.println("\n--------------------------------\n");
-//  delay(500);
   permission = &(read_data[0]);
 }
 
@@ -374,37 +321,36 @@ void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_bu
   pinMode(24, OUTPUT);
   Serial6.begin(38400);
   Serial6.write(send_buffer, written);
-  delay(500);
+  Serial6.flush();
   pinMode(24,INPUT);
   Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
 void loop() {
-  Serial.print("TB 1: ");
-  Serial.println(Serial1.available());
-  Serial.print("TB 2: ");
-  Serial.println(Serial4.available());
-  Serial.print("TB 3: ");
-  Serial.println(Serial7.available());
+//  Serial.print("TB 1: ");
+//  Serial.println(Serial1.available());
+//  Serial.print("TB 2: ");
+//  Serial.println(Serial4.available());
+//  Serial.print("TB 3: ");
+//  Serial.println(Serial7.available());
   
  
   //Terabee 1 Code
   avail = Serial1.available();
   if (avail > 0) {
-    if (state == MSG_INIT || state == MSG_BEGIN) {
-      find_msg(state, Serial1);
-    } else if (state == MSG_DATA) {
+    
+   
       Serial1.readBytes(terabee1_databuffer, 16);
       state = MSG_INIT;
       convert_b8_to_b16(terabee1_databuffer, terabee1_data);
-//      for (int i = 0; i < 8; i++) {
-//        Serial.print("Sensor1 ");
-//        Serial.print(i);
-//        Serial.print(": ");
-//        Serial.println(terabee1_data[i]);
-//      }
+      for (int i = 0; i < 8; i++) {
+        Serial.print("Sensor1 ");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(terabee1_data[i]);
+      }
     }
-  }
+  
 
   // Terabee 2 code
   avail2 = Serial4.available();
@@ -499,43 +445,21 @@ void loop() {
     if (lidar_array_index == LIDAR_DATA_POINTS) {
         convert_b16_to_b8(LidarData, lidar_databuffer,LIDAR_DATA_POINTS*2);
         lidar_array_index=0; 
-    }
-
-    
-    if (Serial6.available() > 0){
-        Serial6.readBytes(read_buffer,read_buffer_len);
-//        for(int i = 0; i < 17; i++)
-//          Serial.println(read_buffer[i]);
-//        r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
-//        Serial.println(read_checksum);
-        if(read_checksum == -1) reset_input_buffer();
-        else test_var++;
-        Serial.println(read_data[0]);
-//        if (read_data[0]) {
-//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
-//      send("IMU", imu_databuffer, 6, imu_send_buffer);
-////      count++;
-////      Serial.println("Count: " + String(count));
-//    }
-     }
-     if(!(test_var % 10)){
-//        Serial.println(test_var);
-     }
-
-//     if (read_data[0]) {
-      if (1) {
-     
-      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
+        if (1){
+       send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
       send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
       send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
       send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
       send("IMU", imu_databuffer, 6, imu_send_buffer);
-//      count++;
-//      Serial.println("Count: " + String(count));
+        }
     }
-     
 
+//    Serial.println(Serial6.available());
+    if (Serial6.available() > 0){
+        Serial6.readBytes(read_buffer,read_buffer_len);
+        r2p_decode(read_buffer, SENSORS_ADDRESS, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
+//        Serial.println(read_checksum);
+        if(read_checksum == -1) reset_input_buffer();
+       
+     }
 }
