@@ -193,10 +193,10 @@ inline void reset_input_buffer() {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);   //Monitor 
-  Serial1.begin(38400); //Terabee1
-  Serial4.begin(38400); //Terabee2
+  Serial1.begin(115200); //Terabee1
+  Serial4.begin(115200); //Terabee2
   Serial3.begin(38400); //Lidar
-  Serial7.begin(38400); //Terabee3
+  Serial7.begin(115200); //Terabee3
   Serial6.begin(38400); //Jetson
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
@@ -205,8 +205,8 @@ void setup() {
   delay(500); // take some time
 
   Serial1.write(mode, 4); // write the command for hex output
-  Serial2.write(mode, 4); // write the command for hex output
-  Serial5.write(mode, 4);
+  Serial4.write(mode, 4); // write the command for hex output
+  Serial7.write(mode, 4);
   reset_input_buffer();
 
   Serial.println("Orientation Sensor Test");
@@ -368,7 +368,7 @@ void loop() {
   avail2 = Serial4.available();
   if (avail2 > 0) {
     if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-      find_msg(state2, Serial2);
+      find_msg(state2, Serial4);
     } else if (state2 == MSG_DATA) {
       Serial4.readBytes(terabee2_databuffer, 16);
       state2 = MSG_INIT;
@@ -385,8 +385,7 @@ void loop() {
   avail3 = Serial7.available();
   if (avail3 > 0) {
     if (state3 == MSG_INIT || state3 == MSG_BEGIN) {
-      find_msg(state3, Serial5);
-    } else if (state3 == MSG_DATA) {
+      find_msg(state3, Serial7);    } else if (state3 == MSG_DATA) {
       Serial7.readBytes(terabee3_databuffer, 16);
       state3 = MSG_INIT;
       convert_b8_to_b16(terabee3_databuffer, terabee3_data);
@@ -404,34 +403,6 @@ void loop() {
       imu_data[1] = (int)event.orientation.y;
       imu_data[2] = (int)event.orientation.z;
       convert_b16_to_b8(imu_data, imu_databuffer, 6);
-
-
-//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
-//      send("IMU", imu_databuffer, 6, imu_send_buffer);
-//      Serial.print("WANT: ");
-//      Serial.println(*permission);
-//    if(read_data[0]) {
-//      send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-//      send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-//      send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-//      send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
-//      send("IMU", imu_databuffer, 6, imu_send_buffer);
-////      count++;
-////      Serial.println("Count: " + String(count));
-//    }
-//    else {
-//      Serial.println("HOLD");
-//      count = 0;
-//    }
-//      for (int i = 0; i < 8; i++) {
-//        Serial.print("Sensor3 ");
-//        Serial.print(i);
-//        Serial.print(": ");
-//        Serial.println(terabee3_data[i]);
-//      }
     }
   }
 //Serial.println(read_data[0]);
@@ -444,8 +415,8 @@ void loop() {
         uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
         uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
                
-        Serial.println("Angle:" + String(angle));
-        Serial.println("Distance:" + String(distance));
+//        Serial.println("Angle:" + String(angle));
+//        Serial.println("Distance:" + String(distance));
         if (lidar_array_index <= LIDAR_DATA_POINTS-1) {
           LidarData[lidar_array_index*2] = angle;
           LidarData[lidar_array_index*2+1] = distance;
