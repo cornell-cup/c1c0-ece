@@ -1,11 +1,11 @@
 void setup() {
   //start serial connection
   Serial.begin(9600);
-  //configure pin 2 as an input and enable the internal pull-up resistor
+  //read value
   pinMode(4, INPUT);
   pinMode(3, INPUT);
   pinMode(2, INPUT);
-  // reading voltage
+  // LED lights
   pinMode(13, OUTPUT);
   // FIRST ONE
   pinMode(12, OUTPUT);
