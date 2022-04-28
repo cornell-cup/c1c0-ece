@@ -17,12 +17,21 @@ ser = serial.Serial(
     baudrate = 115200, #Bits/s data rate
 )
 
-data = "baseball"
+data = "123"
 
 while(True):
-    msg = r2p.encode(b"sprt", bytearray(data, "utf-8")) #Bytearray will convert "baseball" to b'\x62\x61\x73\x65\x62\x61\x6c\x6c'
 
-    ser.write(msg) #Message length will be 24 bytes (See r2p.encode() specification ) 16 header + 8 data bytes
+    msg = r2p.encode(b"DUE1", bytearray(data, "utf-8"))
+
+    ser.write(msg) 
     
-    print("Sent message")
+    msg = r2p.encode(b"sprt", bytearray(data, "utf-8")) 
+
+    ser.write(msg) 
+   
+    msg = r2p.encode(b"DUE2", bytearray(data, "utf-8"))
+
+    ser.write(msg)
+    
+    print("Sent messages")
     time.sleep(1)
