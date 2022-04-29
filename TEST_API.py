@@ -6,7 +6,7 @@ import time
 Terabee API for use with path_planning. 
 
 """
-sys.path.append('/home/cornellcup/c1c0-movement/c1c0-movement/Locomotion/Modified_Bus_Protocol/Jetson') #Might need to be resolved
+sys.path.append('/home/c1c0-main/c1c0-movement/c1c0-movement/Locomotion/Modified_Bus_Protocol/Jetson') #Might need to be resolved
 import modified_protocol2 as r2p
 
 ser = None
@@ -288,7 +288,7 @@ def send_token(permission,addr):
 	
 
 if __name__ == '__main__':
-	init_serial('/dev/ttyTHS1', 38400)
+	init_serial('/dev/ttyS0', 38400)
 	ser.reset_input_buffer()
 
 	#print("STARTED")
