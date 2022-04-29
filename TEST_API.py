@@ -42,6 +42,7 @@ def init_serial(port, baud):
 	global ser, startseq, endseq
 
 	ser = serial.Serial(port, baud)
+	return ser
 
 
 def close_serial():
@@ -91,11 +92,12 @@ def decode_arrays():
 		terabee_array_3 = []
 		ldr_array = []
 		imu_array = []
+		
 
 		print("IN LOOOP")
 		
 		ser.read_until(b"\xd2\xe2\xf2")
-		time.sleep(0.001)
+		time.sleep(0.001) #Remove, or figure out why necessary
 		ser_msg = ser.read(TOTAL_BYTES) #IMU +IR1+IR2+IR3+LIDAR+ENCODING
 		
 		#print(ser_msg)
