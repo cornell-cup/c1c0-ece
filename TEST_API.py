@@ -129,7 +129,6 @@ def decode_arrays():
 			decode_from_ldr(data)
 			good_data = True
 
-de
 
 		elif (mtype == b'IMU\x00'):
 			decode_from_imu(data)
