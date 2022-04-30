@@ -6,7 +6,7 @@ import time
 Terabee API for use with path_planning. 
 
 """
-sys.path.append('/home/c1c0-main/c1c0-movement/c1c0-movement/Locomotion/Modified_Bus_Protocol/Jetson') #Might need to be resolved
+sys.path.append('/home/cornellcup /c1c0-movement/c1c0-movement/Locomotion/Modified_Bus_Protocol/Jetson') #Might need to be resolved
 import modified_protocol2 as r2p
 
 ser = None
@@ -129,6 +129,7 @@ def decode_arrays():
 			decode_from_ldr(data)
 			good_data = True
 
+de
 
 		elif (mtype == b'IMU\x00'):
 			decode_from_imu(data)
@@ -278,13 +279,20 @@ def lidar_tuple_array_append(data, target_array):
 		distance = distance_msbs<<8 | distance_lsbs
 		target_array.append((angle,distance))
 
-def send_token(permission,addr):
+def send_token(addr):
 	"""
 	Parameter: permission is either a 0 or 1. 1 if sensors should send data
 	0 if sensors should cease to send data. 
 	"""
-	msg = r2p.encode(b"SNS", (addr).to_bytes(1,'big'),(permission.to_bytes(1,'big')))
+	msg = r2p.encode(b"SNS", (addr).to_bytes(1,'big'),((1).to_bytes(1,'big')))
 	ser.write(msg)
+	
+	decode_arrays()
+	
+	msg = r2p.encode(b"SNS", (addr).to_bytes(1,'big'),((0).to_bytes(1,'big')))
+	ser.write(msg)
+	
+	ser.reset_input_buffer()
 	
 
 if __name__ == '__main__':
@@ -294,15 +302,9 @@ if __name__ == '__main__':
 	#print("STARTED")
 
 	try:
-		send_token(1,200)
+		send_token(200)
 	
-		for i in range(100):
-			decode_arrays()
-			ldr = get_array("LDR")
-			for i in ldr:
-				print(i)
-		
-		send_token(0,200)
+		ldr = get_array("LDR")
 		
 		time.sleep(1)
 
