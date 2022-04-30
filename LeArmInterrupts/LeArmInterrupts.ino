@@ -92,16 +92,18 @@ void update_servo_angles(){
 }
 
 void changeAngles(uint8_t data[]){
-  for (i=0; i<6; i++){
-    if (data[i] != servo_angles[i]){
-      //Send change command to LeArm
-      
-
-      myse.moveServos(servos,2,1000);  //control 2 servos, action time is 1000ms, ID and position are specified by the structure array "servos"
-
-      myse.moveServos(5,1000,0,1300,2,700,4,600,6,900,8,790);
-    }
-   }
+  //TODO: Call moveServos function for all 6 new joint angles
+  
+//  for (i=0; i<6; i++){
+//    if (data[i] != servo_angles[i]){
+//      //Send change command to LeArm
+//      
+//
+//      myse.moveServos(servos,2,1000);  //control 2 servos, action time is 1000ms, ID and position are specified by the structure array "servos"
+//
+//      myse.moveServos(5,1000,0,1300,2,700,4,600,6,900,8,790);
+//    }
+//   }
 }
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
