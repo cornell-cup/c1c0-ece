@@ -148,7 +148,7 @@ void loop() {
   //delay(1000);
   //Serial.println(J1_deg_to_pos (10));
   arm.moveServos(2,500,1,J1_deg_to_pos (90),2,J2_deg_to_pos (90));
-  Serial.println(J1_deg_to_pos (90));
+  Serial.println(arm.getBatteryVolt());
   delay(1000);
   arm.moveServos(2,500,1,J1_deg_to_pos (120),2,J2_deg_to_pos (60));
   delay(1000);
