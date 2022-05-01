@@ -13,6 +13,7 @@ char type[5];
 uint8_t msg[3];
 uint32_t msg_len;
 uint8_t recv_buf[2048];
+uint8_t iter_counter = 0;
 
 uint16_t buf_idx = 0;
 
@@ -49,10 +50,8 @@ void loop() {
 //  delay(1000);
 //  Serial.println("Compared: " + String(end_cmp(end_arr)));
 
-  if (Serial1.available() > 0) {
-    Serial.println("Data at buffer!");
-    delay(1000);
-    
+  if (Serial1.available() > 17) { //At least one message has arrived, smallest message is 17 bytes (with new R2P)
+    Serial.println(Serial1.available());
     //Read a byte until reach stop sequence
     do{
       recv_buf[buf_idx] = Serial1.read();
@@ -60,29 +59,29 @@ void loop() {
       *p_prev1 = *p_prev0;
       *p_prev0 = recv_buf[buf_idx];
       buf_idx++;
-    }while(Serial1.available() && !end_cmp(end_arr));
-    
-    msg_buffer_len = buf_idx;
-    msg_len = msg_buffer_len-16;
-    buf_idx = 0;
-    
-    
-    //Serial1.readBytes(msg_buffer, msg_buffer_len);
-    r2p_decode(recv_buf, msg_buffer_len, &checksum, type, msg, &msg_len);
-    //Serial.println(String(type));
+    }while(Serial1.available() && !end_cmp(end_arr)); //While there are more bytes and we haven't reached the stop sequence
 
-    //Route ENCODED data to correct host, or print out type if not resolved
-    if(!strcmp(type,"DUE1")){
-      Serial3.write(recv_buf, msg_buffer_len);
-      Serial.println("Wrote to Due 1");
+    if(end_cmp(end_arr)) {
+      msg_buffer_len = buf_idx;
+      msg_len = msg_buffer_len-16;//17 with new r2p
+      buf_idx = 0;
+      
+      //Serial1.readBytes(recv_buf, msg_buffer_len);
+      r2p_decode(recv_buf, msg_buffer_len, &checksum, type, msg, &msg_len);
+      //Route ENCODED data to correct host, or print out type if not resolved
+      if(!strcmp(type,"DUE1")){
+        Serial3.write(recv_buf, msg_buffer_len);
+        Serial.println("Wrote to Due 1");
+      }
+      else if(!strcmp(type,"DUE2")){
+        Serial4.write(recv_buf, msg_buffer_len);
+        Serial.println("Wrote to Due 2");
+      }
+      else{
+        Serial.println("Unrecognized Type: "+String(type));
+      }
     }
-    else if(!strcmp(type,"DUE2")){
-      Serial4.write(recv_buf, msg_buffer_len);
-      Serial.println("Wrote to Due 2");
-    }
-    else{
-      Serial.println("Unrecognized Type: "+String(type));
-    }
+    
 
 //    for(int i = 0; i < msg_len; i++) {
 //      Serial.print((char) msg[i]);
