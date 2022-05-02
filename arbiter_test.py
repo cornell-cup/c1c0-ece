@@ -17,19 +17,24 @@ ser = serial.Serial(
     baudrate = 115200, #Bits/s data rate
 )
 
-data = "123"
+data1 = "123"
+data2 = "1234567"
+data3 = "12345"
+
+def send_token(msg_type, token):
+    msg = r2p.encode(msg_type.to_bytes(1,'big'), token.to_bytes(1, 'big'))
 
 while(True):
 
-    msg = r2p.encode(b"DUE1", bytearray(data, "utf-8"))
+    msg = r2p.encode(b"PRM", bytearray(data1, "utf-8"))
 
     ser.write(msg) 
     
-    msg = r2p.encode(b"sprt", bytearray(data, "utf-8")) 
+    msg = r2p.encode(b"sprt", bytearray(data2, "utf-8")) 
 
     ser.write(msg) 
    
-    msg = r2p.encode(b"DUE2", bytearray(data, "utf-8"))
+    msg = r2p.encode(b"LOC", bytearray(data3, "utf-8"))
 
     ser.write(msg)
     
