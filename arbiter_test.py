@@ -22,21 +22,34 @@ data2 = "1234567"
 data3 = "12345"
 
 def send_token(msg_type, token):
-    msg = r2p.encode(msg_type.to_bytes(1,'big'), token.to_bytes(1, 'big'))
+    req = r2p.encode(msg_type, token.to_bytes(1, 'big'))
+    ser.write(req)
 
 while(True):
-
+    print("Start Sending")
+    
     msg = r2p.encode(b"PRM", bytearray(data1, "utf-8"))
 
     ser.write(msg) 
     
-    msg = r2p.encode(b"sprt", bytearray(data2, "utf-8")) 
+    msg = r2p.encode(b"LOC", bytearray(data3, "utf-8")) 
 
     ser.write(msg) 
-   
-    msg = r2p.encode(b"LOC", bytearray(data3, "utf-8"))
+    
+    msg = r2p.encode(b"sprt", bytearray(data2, "utf-8"))
 
     ser.write(msg)
     
     print("Sent messages")
+    
+    print("Start requesting")
+    
+    send_token(b"PRMR", 1)
+    ser.write(msg)
+    ser_msg = ser.read(24)
+    mtype, data, status = r2p.decode(ser_msg)
+    print(ser_msg)
+    
+    print("Stop requesting")
+    
     time.sleep(1)
