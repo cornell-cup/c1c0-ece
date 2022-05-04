@@ -26,30 +26,36 @@ def send_token(msg_type, token):
     ser.write(req)
 
 while(True):
-    print("Start Sending")
     
     msg = r2p.encode(b"PRM", bytearray(data1, "utf-8"))
 
     ser.write(msg) 
-    
-    msg = r2p.encode(b"LOC", bytearray(data3, "utf-8")) 
-
-    ser.write(msg) 
+    print("Wrote PRM Data Downstream")
     
     msg = r2p.encode(b"sprt", bytearray(data2, "utf-8"))
 
     ser.write(msg)
+    print("Wrote sprt Data Upstream")
     
-    print("Sent messages")
     
-    print("Start requesting")
-    
-    send_token(b"PRMR", 1)
-    ser.write(msg)
-    ser_msg = ser.read(24)
+    send_token(b"LOCR", 1)
+    print("Requested LOC Data Downstream")
+    ser_msg = ser.read(22) #Define this message type higher up
     mtype, data, status = r2p.decode(ser_msg)
+    print("Received LOC Data Upstream")
     print(ser_msg)
     
-    print("Stop requesting")
+    msg = r2p.encode(b"LOC", bytearray(data3, "utf-8")) 
+
+    ser.write(msg) 
+    print("Wrote LOC Data Downstream")
+    
+    
+    send_token(b"PRMR", 1)
+    print("Requested PRM Data Downstream")
+    ser_msg = ser.read(24)
+    mtype, data, status = r2p.decode(ser_msg)
+    print("Received PRM Data Upstream")
+    print(ser_msg)
     
     time.sleep(1)
