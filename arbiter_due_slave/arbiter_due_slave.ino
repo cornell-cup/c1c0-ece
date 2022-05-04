@@ -9,14 +9,14 @@
 
 // parameters that r2p decode funcion takes in
 uint8_t packet_in_buffer[24];
-uint8_t packet_out_buffer[24];
+uint8_t packet_out_buffer[22];
 uint32_t packet_in_len = 24;
 uint16_t checksum;
 char type[5];
 uint8_t msg_in[8];
-uint8_t msg_out[8] = {0,1,2,3,4,5,6,7};;
+uint8_t msg_out[6] = {8,7,6,5,4,3};
 uint32_t msg_len_in = 8;
-uint32_t msg_len_out = 8;
+uint32_t msg_len_out = 6;
 
 unsigned long counter = 0;
 
@@ -48,6 +48,6 @@ void loop() {
 //    Serial.println();
   }
   if((++counter & 2047) == 2047)
-    send("PRMR", msg_out, 8, packet_out_buffer);
+    send("LOCR", msg_out, msg_len_out, packet_out_buffer);
     
 }
