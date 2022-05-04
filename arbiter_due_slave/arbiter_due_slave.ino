@@ -5,14 +5,20 @@
 
 #include "R2Protocol.h"
 
+#define MAX_BUFFER_SIZE 2048
+
 // parameters that r2p decode funcion takes in
-uint8_t msg_buffer[24];
-uint32_t msg_buffer_len = 24;
+uint8_t packet_in_buffer[24];
+uint8_t packet_out_buffer[24];
+uint32_t packet_in_len = 24;
 uint16_t checksum;
 char type[5];
-uint8_t msg[8];
-uint32_t msg_len;
+uint8_t msg_in[8];
+uint8_t msg_out[8] = {0,1,2,3,4,5,6,7};;
+uint32_t msg_len_in = 8;
+uint32_t msg_len_out = 8;
 
+unsigned long counter = 0;
 
 void setup() {
   Serial.begin(9600); // Serial monitor
@@ -24,19 +30,24 @@ void setup() {
   }
 }
 
+void send(char type[5], const uint8_t* msg, uint32_t msg_len, uint8_t* send_buffer) {
+  uint32_t written = r2p_encode(type, msg, msg_len, send_buffer, MAX_BUFFER_SIZE);
+  Serial1.write(send_buffer, written);
+  Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
+}
+
 void loop() {
   if (Serial1.available() > 0) {
-    //Message from Teensy, from Jetson
-    Serial1.readBytes(msg_buffer, msg_buffer_len);
-    r2p_decode(msg_buffer, msg_buffer_len, &checksum, type, msg, &msg_len);
+    //Message from arbiter
+    Serial1.readBytes(packet_in_buffer, packet_in_len);
+    r2p_decode(packet_in_buffer, packet_in_len, &checksum, type, msg_in, &msg_len_in);
 
-    for(int i = 0; i < msg_len; i++) {
-      Serial.print((char) msg[i]);
-    }
-    Serial.println();
-
-    //Send Response Message Upstream
-    
+//    for(int i = 0; i < msg_len; i++) {
+//      Serial.print((char) msg[i]);
+//    }
+//    Serial.println();
   }
-  
+  if((++counter & 2047) == 2047)
+    send("PRMR", msg_out, 8, packet_out_buffer);
+    
 }
