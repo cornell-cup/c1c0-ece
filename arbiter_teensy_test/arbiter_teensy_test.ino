@@ -26,6 +26,7 @@ uint8_t recv_buf3[2048];
 uint16_t msg_len3 = 1574; //upstream packet length (data len) + 16
 char type3_d[] = "SNS"; //Downstream type
 char type3_u[] = "SNSR"; //Upstream type
+uint16_t ser3_count = 0;
 #endif
 
 #ifdef SER4
@@ -109,7 +110,7 @@ inline uint8_t end_cmp(uint8_t * end_arr[3]){
 }
 
 void loop() {
-  //Serial.println(Serial3.available());
+
   //Update input buffers from each connected Serial Device, overwriting the same indices
   #ifdef SER2
   if(Serial2.available() >= msg_len2){ //Continuously update Buffers for connected devices
@@ -117,10 +118,30 @@ void loop() {
   }
   #endif
   #ifdef SER3
-  if(Serial3.available() >= msg_len3){ //Continuously update Buffers for connected devices
-    Serial3.readBytes(recv_buf3, msg_len3);
-    Serial.println("Filled sensor data");
+  if(Serial3.available()){
+    while(ser3_count < msg_len3){
+      //Serial.println(ser3_count);
+      recv_buf3[ser3_count++] = Serial3.read();
+      if(ser3_count == 3){
+        if((recv_buf3[0] != 0xa2) || (recv_buf3[1] != 0xb2) || (recv_buf3[2] != 0xc2)) ser3_count = 0;
+      }
+      delayMicroseconds(100);
+    }
   }
+//  while(Serial3.available() && (ser3_count < msg_len3)){ // >= msg_len3){ //Continuously update Buffers for connected devices
+//    //Serial.println(Serial3.available());
+//    recv_buf3[ser3_count++] = Serial3.read();
+//    if(ser3_count == 3){
+//      if((recv_buf3[0] != 0xa2) || (recv_buf3[1] != 0xb2) || (recv_buf3[2] != 0xc2)) ser3_count = 0;
+//    }
+//    delayMicroseconds(100);
+//    //Serial.println(Serial3.available());
+//  }
+  if(ser3_count > 0) {
+    Serial.println(ser3_count);
+    Serial.println(recv_buf3[1573]);
+  }
+  ser3_count = 0;
   #endif
   #ifdef SER4
   if(Serial4.available() >= msg_len4){ //Continuously update Buffers for connected devices
