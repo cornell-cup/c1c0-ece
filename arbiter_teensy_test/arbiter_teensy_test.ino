@@ -15,13 +15,16 @@
 //Need to declare these for each connected device
 
 #ifdef SER2
+uint8_t STATE2 = 0;
 uint8_t recv_buf2[2048]; //Buffer for upstream messages coming from Ser2 device, to be forwarded to jetson upon request
 uint16_t msg_len2 = 28; //upstream packet length (data len) + 16
 char type2_d[] = "PRM"; //Downstream type
 char type2_u[] = "PRMR"; //Upstream type
+uint16_t ser2_count = 0;
 #endif
 
 #ifdef SER3
+uint8_t STATE3 = 0;
 uint8_t recv_buf3[2048];
 uint16_t msg_len3 = 1574; //upstream packet length (data len) + 16
 char type3_d[] = "SNS"; //Downstream type
@@ -30,31 +33,39 @@ uint16_t ser3_count = 0;
 #endif
 
 #ifdef SER4
+uint8_t STATE4 = 0;
 uint8_t recv_buf4[2048];
 uint16_t msg_len4 = 22; //upstream packet length (data len) + 16
 char type4_d[] = "LOC"; //Downstream type
 char type4_u[] = "LOCR"; //Upstream type
+uint16_t ser4_count = 0;
 #endif
 
 #ifdef SER5
+uint8_t STATE5 = 0;
 uint8_t recv_buf5[2048];
 uint16_t msg_len5 = 0; //upstream packet length (data len) + 16
 char type5_d[] = ""; //Downstream type
 char type5_u[] = ""; //Upstream type
+uint16_t ser5_count = 0;
 #endif
 
 #ifdef SER6
+uint8_t STATE6 = 0;
 uint8_t recv_buf6[2048];
 uint16_t msg_len6 = 0; //upstream packet length (data len) + 16
 char type6_d[] = ""; //Downstream type
 char type6_u[] = ""; //Upstream type
+uint16_t ser6_count = 0;
 #endif
 
 #ifdef SER7
+uint8_t STATE7 = 0;
 uint8_t recv_buf7[2048];
 uint16_t msg_len7 = 0; //upstream packet length (data len) + 16
 char type7_d[] = ""; //Downstream type
 char type7_u[] = ""; //Upstream type
+uint16_t ser7_count = 0;
 #endif
 
 
@@ -73,9 +84,12 @@ uint8_t *p_prev2=&prev2, *p_prev1=&prev1, *p_prev0=&prev0;
 
 uint8_t end_seq[3] = {0xd2,0xe2,0xf2};
 uint8_t * end_arr[3] = {p_prev2, p_prev1, p_prev0};
+
+
   
 void setup() {
-  Serial.begin(9600); // Serial monitor
+  
+  Serial.begin(115200); // Serial monitor
   Serial1.begin(115200); // TX1/RX1 
 
   //These need to be declared in order to read and send messages to the respective devices
@@ -109,60 +123,230 @@ inline uint8_t end_cmp(uint8_t * end_arr[3]){
   return ((*end_arr[0]) == end_seq[0]) && ((*end_arr[1]) == end_seq[1]) && ((*end_arr[2]) == end_seq[2]);
 }
 
-void loop() {
-
-  //Update input buffers from each connected Serial Device, overwriting the same indices
-  #ifdef SER2
-  if(Serial2.available() >= msg_len2){ //Continuously update Buffers for connected devices
-    Serial2.readBytes(recv_buf2, msg_len2);
-  }
-  #endif
-  #ifdef SER3
-  if(Serial3.available()){
-    while(ser3_count < msg_len3){
-      //Serial.println(ser3_count);
-      recv_buf3[ser3_count++] = Serial3.read();
-      if(ser3_count == 3){
-        if((recv_buf3[0] != 0xa2) || (recv_buf3[1] != 0xb2) || (recv_buf3[2] != 0xc2)) ser3_count = 0;
+#ifdef SER2
+void serialEvent2(){
+  if(Serial2.available()){
+    recv_buf2[ser2_count++] = Serial2.read();
+    if(ser2_count < msg_len2){
+      if(STATE2 == 0) {
+        if(recv_buf2[0] == 0xa2)
+          STATE2 = 0xa2;
+        else
+          ser2_count = 0;
       }
-      delayMicroseconds(100);
+      else if(STATE2 == 0xa2){
+        if(recv_buf2[1] == 0xb2)
+          STATE2 = 0xb2;
+        else {
+          ser2_count = 0;
+          STATE2 = 0;
+        }
+      }
+      else if(STATE2 == 0xb2){
+        if(recv_buf2[2] == 0xc2)
+          STATE2 = 0xc2;
+        else {
+          ser2_count = 0;
+          STATE2 = 0;
+        }
+      }
     }
   }
-//  while(Serial3.available() && (ser3_count < msg_len3)){ // >= msg_len3){ //Continuously update Buffers for connected devices
-//    //Serial.println(Serial3.available());
-//    recv_buf3[ser3_count++] = Serial3.read();
-//    if(ser3_count == 3){
-//      if((recv_buf3[0] != 0xa2) || (recv_buf3[1] != 0xb2) || (recv_buf3[2] != 0xc2)) ser3_count = 0;
-//    }
-//    delayMicroseconds(100);
-//    //Serial.println(Serial3.available());
-//  }
-  if(ser3_count > 0) {
-    Serial.println(ser3_count);
-    Serial.println(recv_buf3[1573]);
+  if(ser2_count == msg_len2) {
+//    Serial.println(ser2_count);
+//    Serial.println(recv_buf2[1573]);
+    ser2_count = 0;
+    STATE2 = 0;
   }
-  ser3_count = 0;
-  #endif
-  #ifdef SER4
-  if(Serial4.available() >= msg_len4){ //Continuously update Buffers for connected devices
-    Serial4.readBytes(recv_buf4, msg_len4);
+}
+#endif
+
+#ifdef SER3
+void serialEvent3(){
+  if(Serial3.available()){
+    recv_buf3[ser3_count++] = Serial3.read();
+    if(ser3_count < msg_len3){
+      if(STATE3 == 0) {
+        if(recv_buf3[0] == 0xa2)
+          STATE3 = 0xa2;
+        else
+          ser3_count = 0;
+      }
+      else if(STATE3 == 0xa2){
+        if(recv_buf3[1] == 0xb2)
+          STATE3 = 0xb2;
+        else {
+          ser3_count = 0;
+          STATE3 = 0;
+        }
+      }
+      else if(STATE3 == 0xb2){
+        if(recv_buf3[2] == 0xc2)
+          STATE3 = 0xc2;
+        else {
+          ser3_count = 0;
+          STATE3 = 0;
+        }
+      }
+    }
   }
-  #endif
-  #ifdef SER5
-  if(Serial5.available() >= msg_len5){ //Continuously update Buffers for connected devices
-    Serial5.readBytes(recv_buf5, msg_len5);
+  if(ser3_count == msg_len3) {
+//    Serial.println(ser3_count);
+//    Serial.println(recv_buf3[1573]);
+    ser3_count = 0;
+    STATE3 = 0;
   }
-  #endif
-  #ifdef SER6
-  if(Serial6.available() >= msg_len6){ //Continuously update Buffers for connected devices
-    Serial6.readBytes(recv_buf6, msg_len6);
+}
+#endif
+
+#ifdef SER4
+void serialEvent4(){
+  if(Serial4.available()){
+    recv_buf4[ser4_count++] = Serial4.read();
+    if(ser4_count < msg_len4){
+      if(STATE4 == 0) {
+        if(recv_buf4[0] == 0xa2)
+          STATE4 = 0xa2;
+        else
+          ser4_count = 0;
+      }
+      else if(STATE4 == 0xa2){
+        if(recv_buf4[1] == 0xb2)
+          STATE4 = 0xb2;
+        else {
+          ser4_count = 0;
+          STATE4 = 0;
+        }
+      }
+      else if(STATE4 == 0xb2){
+        if(recv_buf4[2] == 0xc2)
+          STATE4 = 0xc2;
+        else {
+          ser4_count = 0;
+          STATE4 = 0;
+        }
+      }
+    }
   }
-  #endif
-  #ifdef SER7
-  if(Serial7.available() >= msg_len7){ //Continuously update Buffers for connected devices
-    Serial7.readBytes(recv_buf7, msg_len7);
+  if(ser4_count == msg_len4) {
+    ser4_count = 0;
+    STATE4 = 0;
   }
-  #endif
+}
+#endif
+
+#ifdef SER5
+void serialEvent5(){
+  if(Serial5.available()){
+    recv_buf5[ser5_count++] = Serial5.read();
+    if(ser5_count < msg_len5){
+      if(STATE5 == 0) {
+        if(recv_buf5[0] == 0xa2)
+          STATE5 = 0xa2;
+        else
+          ser5_count = 0;
+      }
+      else if(STATE5 == 0xa2){
+        if(recv_buf5[1] == 0xb2)
+          STATE5 = 0xb2;
+        else {
+          ser5_count = 0;
+          STATE5 = 0;
+        }
+      }
+      else if(STATE5 == 0xb2){
+        if(recv_buf5[2] == 0xc2)
+          STATE5 = 0xc2;
+        else {
+          ser5_count = 0;
+          STATE5 = 0;
+        }
+      }
+    }
+  }
+  if(ser5_count == msg_len5) {
+    ser5_count = 0;
+    STATE5 = 0;
+  }
+}
+#endif
+
+#ifdef SER6
+void serialEvent6(){
+  if(Serial6.available()){
+    recv_buf6[ser6_count++] = Serial6.read();
+    if(ser6_count < msg_len6){
+      if(STATE6 == 0) {
+        if(recv_buf6[0] == 0xa2)
+          STATE6 = 0xa2;
+        else
+          ser6_count = 0;
+      }
+      else if(STATE6 == 0xa2){
+        if(recv_buf6[1] == 0xb2)
+          STATE6 = 0xb2;
+        else {
+          ser6_count = 0;
+          STATE6 = 0;
+        }
+      }
+      else if(STATE6 == 0xb2){
+        if(recv_buf6[2] == 0xc2)
+          STATE6 = 0xc2;
+        else {
+          ser6_count = 0;
+          STATE6 = 0;
+        }
+      }
+    }
+  }
+  if(ser6_count == msg_len6) {
+    ser6_count = 0;
+    STATE6 = 0;
+  }
+}
+#endif
+
+#ifdef SER7
+void serialEvent7(){
+  if(Serial7.available()){
+    recv_buf7[ser7_count++] = Serial7.read();
+    if(ser7_count < msg_len7){
+      if(STATE7 == 0) {
+        if(recv_buf7[0] == 0xa2)
+          STATE7 = 0xa2;
+        else
+          ser7_count = 0;
+      }
+      else if(STATE7 == 0xa2){
+        if(recv_buf7[1] == 0xb2)
+          STATE7 = 0xb2;
+        else {
+          ser7_count = 0;
+          STATE7 = 0;
+        }
+      }
+      else if(STATE7 == 0xb2){
+        if(recv_buf7[2] == 0xc2)
+          STATE7 = 0xc2;
+        else {
+          ser7_count = 0;
+          STATE7 = 0;
+        }
+      }
+    }
+  }
+  if(ser7_count == msg_len7) {
+    ser7_count = 0;
+    STATE7 = 0;
+  }
+}
+#endif
+
+void loop() {
+
+  //Input buffers are read by the event handlers
+
 
   //Receives Messages from Jetson, of variable lengths
   if (Serial1.available() >= 17) { //At least one message has arrived, smallest message is 17 bytes (with new R2P)

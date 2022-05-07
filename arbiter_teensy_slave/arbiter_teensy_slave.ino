@@ -38,6 +38,7 @@ void setup() {
 void send(char type[5], const uint8_t* msg, uint32_t msg_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, msg, msg_len, send_buffer, MAX_BUFFER_SIZE);
   Serial1.write(send_buffer, written);
+  Serial1.flush();
   Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
 }
 
@@ -52,7 +53,7 @@ void loop() {
 //    }
 //    Serial.println();
   }
-  if((++counter & 1023) == 1023)
-    send("SNSR", msg_out, msg_len_out, packet_out_buffer);
+  //if((++counter & 255) == 255)
+  send("SNSR", msg_out, msg_len_out, packet_out_buffer);
     
 }
