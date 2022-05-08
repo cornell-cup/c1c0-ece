@@ -6,7 +6,7 @@ import time
 Terabee API for use with path_planning. 
 
 """
-sys.path.append('/home/cornellcup/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
+sys.path.append('/home/c1c0-main/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
 import R2Protocol2 as r2p
 
 ser = None
@@ -42,6 +42,7 @@ def init_serial(port, baud):
 	global ser, startseq, endseq
 
 	ser = serial.Serial(port, baud)
+	return ser
 
 
 def close_serial():
@@ -93,8 +94,8 @@ def decode_arrays():
 		imu_array = []
 
 		# ~ print("IN LOOOP")
-		ser.read_until(b"\xd2\xe2\xf2")
-		time.sleep(0.001)
+		# ~ ser.read_until(b"\xd2\xe2\xf2")
+		# ~ time.sleep(0.001)
 		ser_msg = ser.read(TOTAL_BYTES) #IMU +IR1+IR2+IR3+LIDAR+ENCODING
 		# ~ print(ser_msg)
 		# ~ print("GOT MESSAGE")
@@ -276,17 +277,19 @@ def lidar_tuple_array_append(data, target_array):
 		distance = distance_msbs<<8 | distance_lsbs
 		target_array.append((angle,distance))
 		
-def sensor_permissions (send_permission):
+def sensor_token(msg_type, token):
 	"""
 	Parameter: send_permission is either a 0 or 1. 1 if sensors should send data
 	0 if sensors should cease to send data. 
 	"""
-	send_message = r2p.encode(bytes("SND","utf-8"),bytearray([send_permission]))
-	ser.write(send_message)
-	print(send_message)
+	req = r2p.encode(msg_type, token.to_bytes(1, 'big'))
+	ser.write(req)
+	#print(send_message)
 	
 
 if __name__ == '__main__':
+	print(TOTAL_BYTES)
+	"""
 	init_serial('/dev/ttyTHS1', 38400)
 	ser.reset_input_buffer()
 
@@ -314,3 +317,4 @@ if __name__ == '__main__':
 
 	except KeyboardInterrupt:
 		ser.close()
+	"""

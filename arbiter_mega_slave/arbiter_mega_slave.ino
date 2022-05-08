@@ -8,15 +8,15 @@
 #define MAX_BUFFER_SIZE 2048
 
 // parameters that r2p decode funcion takes in
-uint8_t packet_in_buffer[29];
-uint8_t packet_out_buffer[22];
-uint32_t packet_in_len = 29;
+uint8_t packet_in_buffer[28];
+uint8_t packet_out_buffer[28];
+uint32_t packet_in_len = 28;
 uint16_t checksum;
 char type[5];
-uint8_t msg_in[13];
-uint8_t msg_out[6] = {8,7,6,5,4,3};
-uint32_t msg_len_in = 8;
-uint32_t msg_len_out = 6;
+uint8_t msg_in[12];
+uint8_t msg_out[12] = {8,7,6,5,4,3,45,76,222,11,12,7};
+uint32_t msg_len_in = 12;
+uint32_t msg_len_out = 12;
 
 unsigned long counter = 0;
 
@@ -41,13 +41,13 @@ void loop() {
     //Message from arbiter
     Serial1.readBytes(packet_in_buffer, packet_in_len);
     r2p_decode(packet_in_buffer, packet_in_len, &checksum, type, msg_in, &msg_len_in);
-
+    
     for(int i = 0; i < msg_len_in; i++) {
-      Serial.print((char)msg_in[i]);
+      Serial.print(msg_in[i]);
     }
     Serial.println();
   }
   if((++counter & 2047) == 2047)
-    send("LOCR", msg_out, msg_len_out, packet_out_buffer);
+    send("PRMR", msg_out, msg_len_out, packet_out_buffer);
     
 }
