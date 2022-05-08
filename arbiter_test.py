@@ -20,9 +20,9 @@ import R2Protocol2 as r2p
 
 ser = TEST_API.init_serial('/dev/ttyTHS1', 115200)
 
-data1 = [0,5,10,15,20,25]
+data1 = [0,5,10,15,20,25] # precise arm data
 data2 = "1234567"
-data3 = "12345"
+data3 = "(35, 12, 10 )"
 
 ser.reset_input_buffer()
 
@@ -41,36 +41,28 @@ while(True):
     msg = r2p.encode(b"PRM", bytes(data1))
     ser.write(msg) 
     print("Wrote PRM Data Downstream")
-    msg = r2p.encode(b"sprt", bytearray(data2, "utf-8"))
-    ser.write(msg)
-    print("Wrote sprt Data Downstream")
-    
-    
-    send_token(b"LOCR", 1)
-    print("Requested LOC Data Downstream")
-    ser_msg = ser.read(22) #Define this message type higher up
-    mtype, data, status = r2p.decode(ser_msg)
-    print("Received LOC Data Upstream")
-    print(ser_msg)
+    print("")
     
     msg = r2p.encode(b"LOC", bytearray(data3, "utf-8")) 
     ser.write(msg) 
     print("Wrote LOC Data Downstream")
-    
+    print("")
     
     send_token(b"PRMR", 1)
     print("Requested PRM Data Downstream")
     ser_msg = ser.read(28)
     mtype, data, status = r2p.decode(ser_msg)
     print("Received PRM Data Upstream")
+    print(ser_msg)
+    print("")
     print(convert_8_to_16(data,12))
-    
     
     TEST_API.sensor_token(b"SNSR",1)
     print("Requested SNS Data Downstream")
     TEST_API.decode_arrays()
-    imu = get_array('IMU')
+    imu = TEST_API.get_array('IMU')
     print(imu)
     print("Received SNS Data Upstream")
+    print("")
     
     time.sleep(1)

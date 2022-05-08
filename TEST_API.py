@@ -277,13 +277,13 @@ def lidar_tuple_array_append(data, target_array):
 		distance = distance_msbs<<8 | distance_lsbs
 		target_array.append((angle,distance))
 		
-def sensor_token(typ, send_permission):
+def sensor_token(msg_type, token):
 	"""
 	Parameter: send_permission is either a 0 or 1. 1 if sensors should send data
 	0 if sensors should cease to send data. 
 	"""
-	send_message = r2p.encode(typ,bytearray([send_permission]))
-	ser.write(send_message)
+	req = r2p.encode(msg_type, token.to_bytes(1, 'big'))
+	ser.write(req)
 	#print(send_message)
 	
 
