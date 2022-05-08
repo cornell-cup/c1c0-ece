@@ -33,7 +33,7 @@ void setup() {
 void send(char type[5], const uint8_t* msg, uint32_t msg_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, msg, msg_len, send_buffer, MAX_BUFFER_SIZE);
   Serial1.write(send_buffer, written);
-  Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
+  //Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
 }
 
 void loop() {
@@ -41,11 +41,11 @@ void loop() {
     //Message from arbiter
     Serial1.readBytes(packet_in_buffer, packet_in_len);
     r2p_decode(packet_in_buffer, packet_in_len, &checksum, type, msg_in, &msg_len_in);
-
-//    for(int i = 0; i < msg_len; i++) {
-//      Serial.print((char) msg[i]);
-//    }
-//    Serial.println();
+    
+    for(int i = 0; i < msg_len_in; i++) {
+      Serial.print(msg_in[i]);
+    }
+    Serial.println();
   }
   if((++counter & 2047) == 2047)
     send("PRMR", msg_out, msg_len_out, packet_out_buffer);

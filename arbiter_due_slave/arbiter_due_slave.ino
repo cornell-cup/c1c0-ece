@@ -8,12 +8,12 @@
 #define MAX_BUFFER_SIZE 2048
 
 // parameters that r2p decode funcion takes in
-uint8_t packet_in_buffer[24];
+uint8_t packet_in_buffer[29];
 uint8_t packet_out_buffer[22];
-uint32_t packet_in_len = 24;
+uint32_t packet_in_len = 29;
 uint16_t checksum;
 char type[5];
-uint8_t msg_in[8];
+uint8_t msg_in[13];
 uint8_t msg_out[6] = {8,7,6,5,4,3};
 uint32_t msg_len_in = 8;
 uint32_t msg_len_out = 6;
@@ -33,7 +33,7 @@ void setup() {
 void send(char type[5], const uint8_t* msg, uint32_t msg_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, msg, msg_len, send_buffer, MAX_BUFFER_SIZE);
   Serial1.write(send_buffer, written);
-  Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
+  //Serial.println("NUMBER OF BYTES WRITTEN: " + String(written));
 }
 
 void loop() {
@@ -42,10 +42,10 @@ void loop() {
     Serial1.readBytes(packet_in_buffer, packet_in_len);
     r2p_decode(packet_in_buffer, packet_in_len, &checksum, type, msg_in, &msg_len_in);
 
-//    for(int i = 0; i < msg_len; i++) {
-//      Serial.print((char) msg[i]);
-//    }
-//    Serial.println();
+    for(int i = 0; i < msg_len_in; i++) {
+      Serial.print((char)msg_in[i]);
+    }
+    Serial.println();
   }
   if((++counter & 2047) == 2047)
     send("LOCR", msg_out, msg_len_out, packet_out_buffer);
