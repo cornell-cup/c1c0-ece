@@ -87,12 +87,13 @@ int convert_deg_to_pos (int motor, float deg) {
   }
 }
 
-LobotServoController arm(Serial1);
+LobotServoController arm(Serial2);
 
 void setup() {
   Serial1.begin(9600);
   Serial.begin(9600);
   Serial2.begin(9600);
+  
 // while(!Serial1);
 }
 
@@ -132,7 +133,6 @@ void loop() {
     Serial.println(angle3);
     Serial.println(angle2);
   }
-  Serial.println("out of loop");
 //  Serial.println(angle6);
 //  Serial.println(angle5);
 //  Serial.println(angle4);
@@ -140,17 +140,26 @@ void loop() {
 //  Serial.println(angle2);
  
   //arm.moveServos(5, 1000, 2, J2_deg_to_pos(angle2), 3, J3_deg_to_pos(angle3), 4, J4_deg_to_pos(angle4), 5, J5_deg_to_pos(angle5), 6, J6_deg_to_pos(angle6));
-  // arm.moveServos(4, 1000, 1, J1_deg_to_pos(90), 2, 1000, 3, 1000, 4, 1000);
-  // delay(1000); 
-  // arm.moveServos(4, 1000, 1, J1_deg_to_pos(0), 2, 1000, 3, 1000, 4, 1000);
-  // delay(1000);
+  //arm.moveServos(4, 1000, 1, J1_deg_to_pos(90), 2, 1000, 3, 1000, 4, 1000);
+  //delay(1000); 
+  //arm.moveServos(4, 1000, 1, J1_deg_to_pos(0), 2, 1000, 3, 1000, 4, 1000);
+  //delay(1000);
   //Serial.println(J1_deg_to_pos (90));
   //arm.moveServos(1,2500,2,1000);
   //delay(1000);
   //Serial.println(J1_deg_to_pos (10));
-  arm.moveServos(1,1500,2,J2_deg_to_pos (90));
-  Serial.println(J2_deg_to_pos (90));
+<<<<<<< Updated upstream
+  arm.moveServos(2,500,1,J1_deg_to_pos (90),2,J2_deg_to_pos (90));
+  Serial.println(arm.getBatteryVolt());
+=======
+  arm.moveServos(3,500,1,J1_deg_to_pos (120),2,J2_deg_to_pos (120),3,J3_deg_to_pos(90),4,J4_deg_to_pos(90),5,J5_deg_to_pos(90));
+  Serial.println(J1_deg_to_pos (90));
+>>>>>>> Stashed changes
   delay(1000);
-
+  arm.moveServos(3,500,1,J1_deg_to_pos (90),2,J2_deg_to_pos (90),3,J3_deg_to_pos(120),4,J4_deg_to_pos(90),5,J5_deg_to_pos(90));
+  Serial.println(J1_deg_to_pos (90));
+  delay(1000);
+  //arm.moveServos(2,500,1,J1_deg_to_pos (120),2,J2_deg_to_pos (120));
+  //delay(1000);
   
 }
