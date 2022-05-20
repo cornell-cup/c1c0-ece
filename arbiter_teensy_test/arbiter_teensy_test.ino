@@ -5,7 +5,7 @@
 
 #include "R2Protocol.h"
 //Uncomment which serial ports are in use, make sure to define their parameters below
-#define SER2
+//#define SER2
 #define SER3
 #define SER4
 //#define SER5
@@ -35,9 +35,9 @@ uint16_t ser3_count = 0;
 #ifdef SER4
 uint8_t STATE4 = 0;
 uint8_t recv_buf4[2048];
-uint16_t msg_len4 = 22; //upstream packet length (data len) + 16
-char type4_d[] = "LOC"; //Downstream type
-char type4_u[] = "LOCR"; //Upstream type
+uint16_t msg_len4 = 29; //upstream packet length (data len) + 16
+char type4_d[] = "loco"; //Downstream type
+char type4_u[] = "LOCR"; //Upstream type (NOT NEEDED FOR PATH_PLANNING)
 uint16_t ser4_count = 0;
 #endif
 
@@ -164,6 +164,7 @@ void serialEvent2(){
 #ifdef SER3
 void serialEvent3(){
   if(Serial3.available()){
+//    Serial.println("Reading from ser3");
     recv_buf3[ser3_count++] = Serial3.read();
     if(ser3_count < msg_len3){
       if(STATE3 == 0) {
@@ -342,108 +343,106 @@ void serialEvent7(){
   }
 }
 #endif
+//Receives variable length messages from Jetson, end_cmp() detects if we have a valid packet
+void serialEvent1(){
+  if(Serial1.available()){
+    recv_buf[buf_idx] = Serial1.read();
+    *p_prev2 = *p_prev1;
+    *p_prev1 = *p_prev0;
+    *p_prev0 = recv_buf[buf_idx];
+    buf_idx++;
+  }
+
+}
+
 
 void loop() {
+  //Successfully found a packet from the jetson
+  if(end_cmp(end_arr)) {
+    msg_buffer_len = buf_idx;
+    msg_len = msg_buffer_len-16;//17 with new r2p
+    buf_idx = 0;
+    //Reset end pointers
+    *p_prev2 = 0;
+    *p_prev1 = 0;
+    *p_prev0 = 0;
 
-  //Input buffers are read by the event handlers
-
-
-  //Receives Messages from Jetson, of variable lengths
-  if (Serial1.available() >= 17) { //At least one message has arrived, smallest message is 17 bytes (with new R2P)
-    //Read a byte until reach stop sequence
-    do{
-      recv_buf[buf_idx] = Serial1.read();
-      *p_prev2 = *p_prev1;
-      *p_prev1 = *p_prev0;
-      *p_prev0 = recv_buf[buf_idx];
-      buf_idx++;
-    }while(Serial1.available() && !end_cmp(end_arr)); //While there are more bytes and we haven't reached the stop sequence
-
-    
-    //Successfully found a packet from the jetson
-    if(end_cmp(end_arr)) {
-      msg_buffer_len = buf_idx;
-      msg_len = msg_buffer_len-16;//17 with new r2p
-      buf_idx = 0;
-
-      r2p_decode(recv_buf, msg_buffer_len, &checksum, type, msg, &msg_len);
-      //Route ENCODED data to correct host, or print out type if not resolved
-
-      #ifdef SER2
-      if(!strcmp(type,type2_d)){ //Downstream Serial2
-        Serial2.write(recv_buf, msg_buffer_len);
-        Serial2.flush();
-        Serial.println("Wrote "+String(type)+" message");
-      }
-      else if(!strcmp(type,type2_u)){ //Upstream Serial2
-        Serial1.write(recv_buf2, msg_len2);
-        Serial1.flush();
-        Serial.println("Wrote "+String(type)+" data upstream");
-      }
-      #endif
-      #ifdef SER3
-      if(!strcmp(type,type3_d)){ //Downstream Serial3
-        Serial3.write(recv_buf, msg_buffer_len);
-        Serial3.flush();
-        Serial.println("Wrote "+String(type)+" message");
-      }
-      else if(!strcmp(type,type3_u)){ //Upstream Serial3
-        Serial1.write(recv_buf3, msg_len3);
-        Serial1.flush();
-        Serial.println("Wrote "+String(type)+" data upstream");
-      }
-      #endif
-      #ifdef SER4
-      if(!strcmp(type,type4_d)){ //Downstream Serial4
-        Serial4.write(recv_buf, msg_buffer_len);
-        Serial4.flush();
-        Serial.println("Wrote "+String(type)+" message");
-      }
-      else if(!strcmp(type,type4_u)){ //Upstream Serial4
-        Serial1.write(recv_buf4, msg_len4);
-        Serial1.flush();
-        Serial.println("Wrote "+String(type)+" data upstream");
-      }
-      #endif
-      #ifdef SER5
-      if(!strcmp(type,type5_d)){ //Downstream Serial5
-        Serial5.write(recv_buf, msg_buffer_len);
-        Serial5.flush();
-        Serial.println("Wrote "+String(type)+" message");
-      }
-      else if(!strcmp(type,type5_u)){ //Upstream Serial5
-        Serial1.write(recv_buf5, msg_len5);
-        Serial1.flush();
-        Serial.println("Wrote "+String(type)+" data upstream");
-      }
-      #endif
-      #ifdef SER6
-      if(!strcmp(type,type6_d)){ //Downstream Serial6
-        Serial6.write(recv_buf, msg_buffer_len);
-        Serial6.flush();
-        Serial.println("Wrote "+String(type)+" message");
-      }
-      else if(!strcmp(type,type6_u)){ //Upstream Serial6
-        Serial1.write(recv_buf6, msg_len6);
-        Serial1.flush();
-        Serial.println("Wrote "+String(type)+" data upstream");
-      }
-      #endif
-      #ifdef SER7
-      if(!strcmp(type,type7_d)){ //Downstream Serial7
-        Serial7.write(recv_buf, msg_buffer_len);
-        Serial7.flush();
-        Serial.println("Wrote "+String(type)+" message");
-      }
-      else if(!strcmp(type,type7_u)){ //Upstream Serial7
-        Serial1.write(recv_buf7, msg_len7);
-        Serial1.flush();
-        Serial.println("Wrote "+String(type)+" data upstream");
-      }
-      #endif
+    r2p_decode(recv_buf, msg_buffer_len, &checksum, type, msg, &msg_len);
+    //Route ENCODED data to correct host, or print out type if not resolved
+    #ifdef SER2
+    if(!strcmp(type,type2_d)){ //Downstream Serial2
+      Serial2.write(recv_buf, msg_buffer_len);
+      Serial2.flush();
+      Serial.println("Wrote "+String(type)+" message");
+    }
+    else if(!strcmp(type,type2_u)){ //Upstream Serial2
+      Serial1.write(recv_buf2, msg_len2);
+      Serial1.flush();
+      Serial.println("Wrote "+String(type)+" data upstream");
+    }
+    #endif
+    #ifdef SER3
+    if(!strcmp(type,type3_d)){ //Downstream Serial3
+      Serial3.write(recv_buf, msg_buffer_len);
+      Serial3.flush();
+      Serial.println("Wrote "+String(type)+" message");
+    }
+    else if(!strcmp(type,type3_u)){ //Upstream Serial3
+      Serial1.write(recv_buf3, msg_len3);
+      Serial1.flush();
+      Serial.println("Wrote "+String(type)+" data upstream");
+    }
+    #endif
+    #ifdef SER4
+    if(!strcmp(type,type4_d)){ //Downstream Serial4
+      Serial4.write(recv_buf, msg_buffer_len);
+      Serial4.flush();
+      Serial.println("Wrote "+String(type)+" message");
+    }
+    else if(!strcmp(type,type4_u)){ //Upstream Serial4
+      Serial1.write(recv_buf4, msg_len4);
+      Serial1.flush();
+      Serial.println("Wrote "+String(type)+" data upstream");
+    }
+    #endif
+    #ifdef SER5
+    if(!strcmp(type,type5_d)){ //Downstream Serial5
+      Serial5.write(recv_buf, msg_buffer_len);
+      Serial5.flush();
+      Serial.println("Wrote "+String(type)+" message");
+    }
+    else if(!strcmp(type,type5_u)){ //Upstream Serial5
+      Serial1.write(recv_buf5, msg_len5);
+      Serial1.flush();
+      Serial.println("Wrote "+String(type)+" data upstream");
+    }
+    #endif
+    #ifdef SER6
+    if(!strcmp(type,type6_d)){ //Downstream Serial6
+      Serial6.write(recv_buf, msg_buffer_len);
+      Serial6.flush();
+      Serial.println("Wrote "+String(type)+" message");
+    }
+    else if(!strcmp(type,type6_u)){ //Upstream Serial6
+      Serial1.write(recv_buf6, msg_len6);
+      Serial1.flush();
+      Serial.println("Wrote "+String(type)+" data upstream");
+    }
+    #endif
+    #ifdef SER7
+    if(!strcmp(type,type7_d)){ //Downstream Serial7
+      Serial7.write(recv_buf, msg_buffer_len);
+      Serial7.flush();
+      Serial.println("Wrote "+String(type)+" message");
+    }
+    else if(!strcmp(type,type7_u)){ //Upstream Serial7
+      Serial1.write(recv_buf7, msg_len7);
+      Serial1.flush();
+      Serial.println("Wrote "+String(type)+" data upstream");
+    }
+    #endif
 //      else{
 //        Serial.println("Unrecognized Type: "+String(type));
 //      }
-    }
   }
 }

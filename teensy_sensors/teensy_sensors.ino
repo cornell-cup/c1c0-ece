@@ -41,14 +41,14 @@
 //Terabee Variables
 int test_var = 0;
 int state;
-uint8_t terabee1_databuffer[16];
-uint16_t terabee1_data[8];
+uint8_t terabee1_databuffer[16] = {0};
+uint16_t terabee1_data[8] = {0};
 int state2;
-uint8_t terabee2_databuffer[16];
-uint16_t terabee2_data[8];
+uint8_t terabee2_databuffer[16] = {0} ;
+uint16_t terabee2_data[8] = {0};
 int state3;
-uint8_t terabee3_databuffer[16];
-uint16_t terabee3_data[8];
+uint8_t terabee3_databuffer[16] = {0};
+uint16_t terabee3_data[8] = {0};
 
 //Lidar variables
 uint16_t LidarData[LIDAR_DATA_POINTS*2]; //replace with fixed length and clear/run again if needed
@@ -194,10 +194,10 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);   //Monitor 
   Serial1.begin(115200); //Terabee1
-  Serial4.begin(115200); //Terabee2
+  //Serial4.begin(115200); //Terabee2
   Serial3.begin(38400); //Lidar
   Serial7.begin(115200); //Terabee3
-  Serial6.begin(38400); //Jetson
+  Serial4.begin(38400); //Jetson
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
@@ -340,8 +340,8 @@ uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial6.write(send_buffer, written);
-//  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
+  Serial4.write(send_buffer, written);
+  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
 }
 
 void loop() {

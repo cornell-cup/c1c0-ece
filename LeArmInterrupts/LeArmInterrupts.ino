@@ -63,7 +63,7 @@ int J3_deg_to_pos (float deg) {
   int upper = 2000;
   int range = upper - lower;
   int pos = -1;
-  if (deg >= 0 && deg <= 180) {
+  if (deg >= 0 && deg <= 150) {
     pos = ((deg / 180) * range) + lower;
   }
   return pos;
@@ -223,6 +223,7 @@ void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_bu
 
 uint16_t init_data[] = {90,90,30,45,45,120};
 
+
 void loop(){
   if(do_init){
     changeAngles(init_data);
@@ -267,6 +268,25 @@ void loop(){
 
 
 }
+
+
+// J1: 20 for open; 160 for close
+// J2: 0 to 180 
+// J3: 0 for up; 150 for down
+// J4: 0 to 180
+// J5: 
+// J6: 
+
+//void loop() {
+////  arm.moveServos(1,500,1,J1_deg_to_pos (160),2,J2_deg_to_pos (120),3,J3_deg_to_pos(90),4,J4_deg_to_pos(90),5,J5_deg_to_pos(30), 6, J6_deg_to_pos(60));
+////  delay(2000);
+////  arm.moveServos(1,500,1,J1_deg_to_pos (20),2,J2_deg_to_pos (90),3,J3_deg_to_pos(120),4,J4_deg_to_pos(120),5,J5_deg_to_pos(60), 6, J6_deg_to_pos(120));
+////  delay(1000);
+//  arm.moveServos(1,500,5,J5_deg_to_pos(30));
+//  delay(2000);
+//  arm.moveServos(1,500,5,J5_deg_to_pos(100));
+//  delay(1000);
+//}
 
 
 void convert_b8_to_b16(uint8_t *databuffer, uint16_t *data) {
