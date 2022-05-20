@@ -2,6 +2,7 @@
 
 // See the FAQ on the Cornell Cup Google Drive, located Here: 
 // https://docs.google.com/document/d/1cKZGTqvyOFYL5ugZGULJ74xGuEwgBEWSXJAztM2qnaE/edit
+// Author: Stefen Pegels, email sgp62@cornell.edu for contact
 
 #include "R2Protocol.h"
 //Uncomment which serial ports are in use, make sure to define their parameters below
