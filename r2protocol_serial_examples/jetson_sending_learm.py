@@ -17,7 +17,7 @@ ser = serial.Serial(
     baudrate = 9600, #Bits/s data rate
 )
 
-data = [90,90,40,45,45,120]
+data = [90,90,70,45,45,120]
 init = 1
 
 def convert_8_to_16(msg, length):
@@ -26,15 +26,22 @@ def convert_8_to_16(msg, length):
         data.append((msg[i] << 8) | msg[i+1])
     return data
 
+def convert_16_to_8(msg, length):
+    data = []
+    for i in range(0,length):
+        data.append((msg[i] >> 8) & 255)
+        data.append(msg[i] & 255)
+    return data
 
 while(True):
+
     if(init):
         ser_msg = ser.read(28)
         mtype,r_data,status = r2p.decode(ser_msg)
         print(convert_8_to_16(r_data,12))
         init = 0
-    
-    msg = r2p.encode(b"PRM", bytes(data))
+        
+    msg = r2p.encode(b"PRM", bytes(convert_16_to_8(data,6)))
 
     ser.write(msg) #Message length will be 24 bytes (See r2p.encode() specification ) 16 header + 8 data bytes
     
