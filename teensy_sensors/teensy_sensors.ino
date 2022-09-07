@@ -41,14 +41,14 @@
 //Terabee Variables
 int test_var = 0;
 int state;
-uint8_t terabee1_databuffer[16];
-uint16_t terabee1_data[8];
+uint8_t terabee1_databuffer[16] = {0};
+uint16_t terabee1_data[8] = {0};
 int state2;
-uint8_t terabee2_databuffer[16];
-uint16_t terabee2_data[8];
+uint8_t terabee2_databuffer[16] = {0} ;
+uint16_t terabee2_data[8] = {0};
 int state3;
-uint8_t terabee3_databuffer[16];
-uint16_t terabee3_data[8];
+uint8_t terabee3_databuffer[16] = {0};
+uint16_t terabee3_data[8] = {0};
 
 //Lidar variables
 uint16_t LidarData[LIDAR_DATA_POINTS*2]; //replace with fixed length and clear/run again if needed
@@ -186,7 +186,7 @@ void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 byte mode[4] = {0x00,0x11,0x02,0x4C};
 
 inline void reset_input_buffer() {
-  while (Serial6.available() > 0 ) Serial6.read();
+  while (Serial4.available() > 0 ) Serial4.read();
   delay(100);
 }
 
@@ -194,10 +194,10 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);   //Monitor 
   Serial1.begin(115200); //Terabee1
-  Serial4.begin(115200); //Terabee2
+  //Serial4.begin(115200); //Terabee2
   Serial3.begin(38400); //Lidar
   Serial7.begin(115200); //Terabee3
-  Serial6.begin(38400); //Jetson
+  Serial4.begin(38400); //Jetson
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
@@ -205,7 +205,7 @@ void setup() {
   delay(500); // take some time
 
   Serial1.write(mode, 4); // write the command for hex output
-  Serial4.write(mode, 4); // write the command for hex output
+//  Serial4.write(mode, 4); // write the command for hex output
   Serial7.write(mode, 4);
   reset_input_buffer();
 
@@ -340,8 +340,12 @@ uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial6.write(send_buffer, written);
+  Serial4.write(send_buffer, written);
+<<<<<<< HEAD
+  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
+=======
 //  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
+>>>>>>> d39588d2f0435dc5b7bf7f4fad2941c5e351c706
 }
 
 void loop() {
@@ -364,23 +368,23 @@ void loop() {
     }
   }
   
-  // Terabee 2 code
-  avail2 = Serial4.available();
-  if (avail2 > 0) {
-    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-      find_msg(state2, Serial4);
-    } else if (state2 == MSG_DATA) {
-      Serial4.readBytes(terabee2_databuffer, 16);
-      state2 = MSG_INIT;
-      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-//      for (int i = 0; i < 8; i++) {
-//        Serial.print("Sensor2 ");
-//        Serial.print(i);
-//        Serial.print(": ");
-//        Serial.println(terabee2_data[i]);
-//      }
-    }
-  }
+//  // Terabee 2 code
+//  avail2 = Serial4.available();
+//  if (avail2 > 0) {
+//    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
+//      find_msg(state2, Serial4);
+//    } else if (state2 == MSG_DATA) {
+//      Serial4.readBytes(terabee2_databuffer, 16);
+//      state2 = MSG_INIT;
+//      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
+////      for (int i = 0; i < 8; i++) {
+////        Serial.print("Sensor2 ");
+////        Serial.print(i);
+////        Serial.print(": ");
+////        Serial.println(terabee2_data[i]);
+////      }
+//    }
+//  }
   
   avail3 = Serial7.available();
   if (avail3 > 0) {
@@ -449,24 +453,6 @@ void loop() {
         }
     }
 
-    
-    if (Serial6.available() > 0){
-        Serial6.readBytes(read_buffer,read_buffer_len);
-        r2p_decode(read_buffer, read_buffer_len, &read_checksum, read_type, read_data, &read_data_len);
-//        Serial.println(read_checksum);
-        if(read_checksum == -1) reset_input_buffer();
-        else test_var++;
-     }
-     if(!(test_var % 10)){
-//        Serial.println(test_var);
-     }
 
-//     if (read_data[0]) {
-      if (1) {
-        
-//      count++;
-//      Serial.println("Count: " + String(count));
-    }
-     
 
 }
