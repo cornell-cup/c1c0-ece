@@ -194,10 +194,10 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);   //Monitor 
   Serial1.begin(115200); //Terabee1
-  //Serial4.begin(115200); //Terabee2
+  Serial4.begin(115200); //Arbiter Teensy
   Serial3.begin(38400); //Lidar
   Serial7.begin(115200); //Terabee3
-  Serial4.begin(38400); //Jetson
+  //Serial4.begin(38400); //Jetson
   bno.begin();           //IMU Initialization
   bno.enterNormalMode();
   lidar.begin(Serial3);  //Lidar Initialization
