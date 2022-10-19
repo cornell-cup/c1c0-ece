@@ -9,7 +9,7 @@ import time
 import sys
 import TEST_API
 
-sys.path.append('/home/c1c0-main/c1c0-movement/c1c0-movement/Locomotion')
+sys.path.append('/home/cornellcup/c1c0-main/c1c0-movement/c1c0-movement/Locomotion')
 #Resolve 'cornellcup' to be the username of this Jetson, make sure c1c0-movement is cloned
 import R2Protocol2 as r2p
 
