@@ -341,13 +341,8 @@ uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
   Serial4.write(send_buffer, written);
-<<<<<<< HEAD
-  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
-=======
-//  Serial.println("NIMBER OF BYTES WRITTEN! READ ME" + String(written));
->>>>>>> d39588d2f0435dc5b7bf7f4fad2941c5e351c706
+  Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
-
 void loop() {
  
   //Terabee 1 Code

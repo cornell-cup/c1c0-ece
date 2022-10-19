@@ -8,7 +8,7 @@
 //Uncomment which serial ports are in use, make sure to define their parameters below
 //#define SER2
 #define SER3
-#define SER4
+//#define SER4
 //#define SER5
 //#define SER6
 //#define SER7
