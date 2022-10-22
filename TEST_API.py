@@ -24,7 +24,7 @@ IMU_DATA_LEN = IMU_DATA_POINTS * 2
 ENCODING_BYTES = 16
 ENCODING_BYTES_TOTAL = ENCODING_BYTES * 5 # 16 EACH FOR LIDAR, IMU, AND 3 TERABEES
 
-TOTAL_BYTES = LIDAR_DATA_LEN + TERABEE_DATA_LEN*3 + IMU_DATA_LEN + ENCODING_BYTES_TOTAL
+TOTAL_BYTES = LIDAR_DATA_LEN + TERABEE_DATA_LEN*3 + IMU_DATA_LEN + ENCODING_BYTES
 
 terabee_array_1 = []
 terabee_array_2 = []
@@ -93,11 +93,11 @@ def decode_arrays():
         ldr_array = []
         imu_array = []
 
-        # ~ print("IN LOOOP")
-        # ~ ser.read_until(b"\xd2\xe2\xf2")
-        # ~ time.sleep(0.001)
-        ser_msg = ser.read(TOTAL_BYTES) #IMU +IR1+IR2+IR3+LIDAR+ENCODING
+        #print("IN LOOP")
+        ser_msg = ser.read_until(b"\xd2\xe2\xf2")
+        ser.reset_input_buffer()
         # ~ print(ser_msg)
+        # ~ time.sleep(0.001)
         # ~ print("GOT MESSAGE")
         mtype, data, status = r2p.decode(ser_msg)
         """
@@ -130,6 +130,9 @@ def decode_arrays():
         elif (mtype == b'IMU\x00'):
             decode_from_imu(data)
             good_data = True
+        elif (mtype == b'SENS'):
+            decode_from_sens(data)
+            good_data = True
 
         else:
             # ~ print("NO GOOD")
@@ -137,6 +140,19 @@ def decode_arrays():
             time.sleep(0.01)
             
 
+
+def decode_from_sens(data):
+    terabee1_data = data[:TERABEE_DATA_LEN]
+    terabee2_data = data[TERABEE_DATA_LEN:TERABEE_DATA_LEN + TERABEE_DATA_LEN]
+    terabee3_data = data[TERABEE_DATA_LEN*2:TERABEE_DATA_LEN*2 + TERABEE_DATA_LEN]
+    ldr_data      = data[TERABEE_DATA_LEN*3:TERABEE_DATA_LEN*3 + LIDAR_DATA_LEN]
+    imu_data      = data[TERABEE_DATA_LEN*3 + LIDAR_DATA_LEN :TOTAL_BYTES]
+
+    terabee_array_append(terabee1_data, terabee_array_1)
+    terabee_array_append(terabee2_data, terabee_array_2)
+    terabee_array_append(terabee3_data, terabee_array_3)
+    lidar_tuple_array_append(ldr_data, ldr_array)
+    imu_array_append(imu_data, imu_array)
 
 def decode_from_ir(data):
     """

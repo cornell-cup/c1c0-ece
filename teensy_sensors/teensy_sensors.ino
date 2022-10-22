@@ -37,7 +37,10 @@
 
 #define LIDAR_DATA_POINTS 360
 #define MAX_BUFFER_SIZE 2048
-
+#define TERABEE_DATA_LEN 16
+#define LIDAR_DATA_LEN LIDAR_DATA_POINTS*4
+#define IMU_DATA_LEN 6
+#define SENSOR_DATA_LEN (TERABEE_DATA_LEN*3 + IMU_DATA_LEN + LIDAR_DATA_LEN)
 //Terabee Variables
 int test_var = 0;
 int state;
@@ -62,6 +65,8 @@ sensors_event_t event;
 uint8_t imu_databuffer[6];
 uint16_t imu_data[3];
 bool foundCalib;
+//Total sensor data buffer where all other sensor data goes in
+uint8_t sensor_databuffer[SENSOR_DATA_LEN];
 
 //Variables to Read From Jetson
 uint8_t* permission;
@@ -337,6 +342,7 @@ uint8_t terabee2_send_buffer[MAX_BUFFER_SIZE];
 uint8_t terabee3_send_buffer[MAX_BUFFER_SIZE];
 uint8_t lidar_send_buffer[MAX_BUFFER_SIZE];
 uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
+uint8_t sensor_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
@@ -344,7 +350,6 @@ void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_bu
   Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
 void loop() {
- 
   //Terabee 1 Code
   avail = Serial1.available();
   if (avail > 0) {
@@ -440,11 +445,13 @@ void loop() {
         lidar_array_index=0; 
         if (1){
         delay(10);
-        send("IR", terabee1_databuffer, 16, terabee1_send_buffer);
-        send("IR2", terabee2_databuffer, 16, terabee2_send_buffer);
-        send("IR3", terabee3_databuffer, 16, terabee3_send_buffer);
-        send("LDR", lidar_databuffer, LIDAR_DATA_POINTS*4, lidar_send_buffer);
-        send("IMU", imu_databuffer, 6, imu_send_buffer);
+        //Copying data arrays into overall sensor data buffer
+        memcpy(sensor_databuffer, terabee1_databuffer, TERABEE_DATA_LEN);
+        memcpy(sensor_databuffer+TERABEE_DATA_LEN,terabee2_databuffer, TERABEE_DATA_LEN);
+        memcpy(sensor_databuffer+TERABEE_DATA_LEN*2,terabee3_databuffer, TERABEE_DATA_LEN);
+        memcpy(sensor_databuffer+TERABEE_DATA_LEN*3,lidar_databuffer, LIDAR_DATA_LEN);
+        memcpy(sensor_databuffer+TERABEE_DATA_LEN*3+LIDAR_DATA_LEN,imu_databuffer, IMU_DATA_LEN);
+        send("SENS", sensor_databuffer, SENSOR_DATA_LEN, sensor_send_buffer);
         }
     }
 
