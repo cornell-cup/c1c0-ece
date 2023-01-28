@@ -305,8 +305,7 @@ def sensor_token(msg_type, token):
 
 if __name__ == '__main__':
     print(TOTAL_BYTES)
-    """
-    init_serial('/dev/ttyTHS1', 38400)
+    init_serial('/dev/ttyTHS1', 115200)
     ser.reset_input_buffer()
 
     #print("STARTED")
