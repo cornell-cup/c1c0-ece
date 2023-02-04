@@ -323,7 +323,7 @@ if __name__ == '__main__':
                 tb3 = get_array('TB3')
                 imu = get_array('IMU')
             
-                print(imu)
+                print(tb2)
             # ~ else:
                 # ~ print("NOT GOT")
             # ~ time.sleep(1)
@@ -332,3 +332,4 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         ser.close()
+    """
