@@ -19,7 +19,7 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 #include <RPLidar.h>
-#include <R2Protocol.h>
+#include "R2Protocol/R2Protocol.h"
 #include <EEPROM.h>
 
 #define START1 77
@@ -271,8 +271,6 @@ void setup() {
   /* Crystal must be configured AFTER loading calibration data into BNO055. */
   bno.setExtCrystalUse(true);
 
-  sensors_event_t event;
-  bno.getEvent(&event);
   /* always recal the mag as It goes out of calibration very often */
 //  if (foundCalib)
 //  {
@@ -402,11 +400,7 @@ void loop() {
 //        Serial.print("\tZ: ");
 //        Serial.print(event.orientation.z, 4);
 
-      bno.getEvent(&event);  
-      imu_data[0] = (int)event.orientation.x;
-      imu_data[1] = (int)event.orientation.y;
-      imu_data[2] = (int)event.orientation.z;
-      convert_b16_to_b8(imu_data, imu_databuffer, 6);
+
     }
   }
 //Serial.println(read_data[0]);
@@ -440,18 +434,27 @@ void loop() {
       }
     }
 
+      
+
     if (lidar_array_index == LIDAR_DATA_POINTS) {
+      bno.getEvent(&event);  
+      imu_data[0] = (int)event.orientation.x;
+      imu_data[1] = (int)event.orientation.y;
+      imu_data[2] = (int)event.orientation.z;
+      
+      convert_b16_to_b8(imu_data, imu_databuffer, 3);        
+    
         convert_b16_to_b8(LidarData, lidar_databuffer,LIDAR_DATA_POINTS*2);
         lidar_array_index=0; 
         if (1){
-        delay(10);
+        //delay(10);
         //Copying data arrays into overall sensor data buffer
         memcpy(sensor_databuffer, terabee1_databuffer, TERABEE_DATA_LEN);
         memcpy(sensor_databuffer+TERABEE_DATA_LEN,terabee2_databuffer, TERABEE_DATA_LEN);
         memcpy(sensor_databuffer+TERABEE_DATA_LEN*2,terabee3_databuffer, TERABEE_DATA_LEN);
         memcpy(sensor_databuffer+TERABEE_DATA_LEN*3,lidar_databuffer, LIDAR_DATA_LEN);
         memcpy(sensor_databuffer+TERABEE_DATA_LEN*3+LIDAR_DATA_LEN,imu_databuffer, IMU_DATA_LEN);
-        send("SENS", sensor_databuffer, SENSOR_DATA_LEN, sensor_send_buffer);
+        send((char*)"SENS", sensor_databuffer, SENSOR_DATA_LEN, sensor_send_buffer);
         }
     }
 
