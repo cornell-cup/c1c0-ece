@@ -1,18 +1,18 @@
 /*  Teensy_sensors.ino
  *  Cornell Cup Robotics
  *  Last modified: May 1, 2021
- *  
- *  The all-encompassing script for the peripheral sensors on C1C0 used to 
+ *
+ *  The all-encompassing script for the peripheral sensors on C1C0 used to
  *  aid path planning and locomotion.
  *  Sensors added - Terabee IR ToF 1, Terabee IR ToF 2, LIDAR, Adafruit BNO055
- *   
+ *
  *   Authors - Brett Sawka, Stefen Pegels, Aparajito Saha
  */
 
- /*  I2C Info
-  *  IMU Device: Adafruit BNO055
-  *  Device address -> 
-  */
+/*  I2C Info
+ *  IMU Device: Adafruit BNO055
+ *  Device address ->
+ */
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -38,38 +38,38 @@
 #define LIDAR_DATA_POINTS 360
 #define MAX_BUFFER_SIZE 2048
 #define TERABEE_DATA_LEN 16
-#define LIDAR_DATA_LEN LIDAR_DATA_POINTS*4
+#define LIDAR_DATA_LEN LIDAR_DATA_POINTS * 4
 #define IMU_DATA_LEN 6
-#define SENSOR_DATA_LEN (TERABEE_DATA_LEN*3 + IMU_DATA_LEN + LIDAR_DATA_LEN)
-//Terabee Variables
+#define SENSOR_DATA_LEN (TERABEE_DATA_LEN * 3 + IMU_DATA_LEN + LIDAR_DATA_LEN)
+// Terabee Variables
 int test_var = 0;
 int state;
 uint8_t terabee1_databuffer[16] = {0};
 uint16_t terabee1_data[8] = {0};
 int state2;
-uint8_t terabee2_databuffer[16] = {0} ;
+uint8_t terabee2_databuffer[16] = {0};
 uint16_t terabee2_data[8] = {0};
 int state3;
 uint8_t terabee3_databuffer[16] = {0};
 uint16_t terabee3_data[8] = {0};
 
-//Lidar variables
-uint16_t LidarData[LIDAR_DATA_POINTS*2]; //replace with fixed length and clear/run again if needed
+// Lidar variables
+uint16_t LidarData[LIDAR_DATA_POINTS * 2]; // replace with fixed length and clear/run again if needed
 int array_counter = 0;
 const uint16_t zero_b16 = 0;
-uint8_t lidar_databuffer[LIDAR_DATA_POINTS*4];
+uint8_t lidar_databuffer[LIDAR_DATA_POINTS * 4];
 int lidar_array_index;
 
-//IMU variables
+// IMU variables
 sensors_event_t event;
 uint8_t imu_databuffer[6];
 uint16_t imu_data[3];
 bool foundCalib;
-//Total sensor data buffer where all other sensor data goes in
+// Total sensor data buffer where all other sensor data goes in
 uint8_t sensor_databuffer[SENSOR_DATA_LEN];
 
-//Variables to Read From Jetson
-uint8_t* permission;
+// Variables to Read From Jetson
+uint8_t *permission;
 bool waitingForPermission = 1;
 uint8_t read_buffer[17];
 uint32_t read_buffer_len = 17;
@@ -79,52 +79,64 @@ uint8_t read_data[1] = {0};
 uint32_t read_data_len = 1;
 int count;
 
-
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
 RPLidar lidar; // Instantiate lidar
 
-void find_msg(int &state, HardwareSerial &ser) {
+void find_msg(int &state, HardwareSerial &ser)
+{
   uint8_t b = ser.read();
-  switch(state) {
-    case MSG_INIT:
-      if (b == START1) {
-        state = MSG_BEGIN;
-      }
+  switch (state)
+  {
+  case MSG_INIT:
+    if (b == START1)
+    {
+      state = MSG_BEGIN;
+    }
     break;
-    case MSG_BEGIN:
-      if (b == START2) {
-        state = MSG_DATA;
-      } else {
-        state = MSG_INIT;
-      }
-    break;
-    default:
+  case MSG_BEGIN:
+    if (b == START2)
+    {
+      state = MSG_DATA;
+    }
+    else
+    {
       state = MSG_INIT;
+    }
+    break;
+  default:
+    state = MSG_INIT;
   }
 }
 
-void convert_b8_to_b16(uint8_t *databuffer, uint16_t *data) {
+void convert_b8_to_b16(uint8_t *databuffer, uint16_t *data)
+{
   int data_idx;
-  for (int i=0; i < 16; i++) {
+  for (int i = 0; i < 16; i++)
+  {
     data_idx = i / 2;
-    if ( (i & 1) == 0) {
+    if ((i & 1) == 0)
+    {
       // even
       data[data_idx] = databuffer[i] << 8;
-    } else {
+    }
+    else
+    {
       // odd
       data[data_idx] |= databuffer[i];
     }
   }
 }
 
-void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len) {
-//  int data_idx1;
-//  int data_idx2;
-  for (int i = 0; i < 2*len; i+=2) {
-    data[i] = (databuffer[i/2] >> 8) & 255;
-    data[i+1] = (databuffer[i/2]) & 255;
-  }  
+void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len)
+{
+  //  int data_idx1;
+  //  int data_idx2;
+  for (int i = 0; i < 2 * len; i += 2)
+  {
+    data[i] = (databuffer[i / 2] >> 8) & 255;
+    data[i + 1] = (databuffer[i / 2]) & 255;
+  }
 }
 
 void displaySensorDetails(void)
@@ -185,32 +197,34 @@ void displayCalStatus(void)
 /**************************************************************************/
 void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 {
-  
 }
 
-byte mode[4] = {0x00,0x11,0x02,0x4C};
+byte mode[4] = {0x00, 0x11, 0x02, 0x4C};
 
-inline void reset_input_buffer() {
-  while (Serial4.available() > 0 ) Serial4.read();
+inline void reset_input_buffer()
+{
+  while (Serial4.available() > 0)
+    Serial4.read();
   delay(100);
 }
 
-void setup() {
+void setup()
+{
   // put your setup code here, to run once:
-  Serial.begin(9600);   //Monitor 
-  Serial1.begin(115200); //Terabee1
-  Serial4.begin(115200); //Arbiter Teensy
-  Serial3.begin(38400); //Lidar
-  Serial7.begin(115200); //Terabee3
-  //Serial4.begin(38400); //Jetson
-  bno.begin();           //IMU Initialization
+  Serial.begin(9600);    // Monitor
+  Serial1.begin(115200); // Terabee1
+  Serial4.begin(115200); // Arbiter Teensy
+  Serial3.begin(38400);  // Lidar
+  Serial7.begin(115200); // Terabee3
+  // Serial4.begin(38400); //Jetson
+  bno.begin(); // IMU Initialization
   bno.enterNormalMode();
-  lidar.begin(Serial3);  //Lidar Initialization
+  lidar.begin(Serial3); // Lidar Initialization
 
   delay(500); // take some time
 
   Serial1.write(mode, 4); // write the command for hex output
-//  Serial4.write(mode, 4); // write the command for hex output
+                          //  Serial4.write(mode, 4); // write the command for hex output
   Serial7.write(mode, 4);
   reset_input_buffer();
 
@@ -218,13 +232,13 @@ void setup() {
   Serial.println("");
 
   /* Initialise the sensor */
-//  if (!bno.begin())
-//  {
-//    /* There was a problem detecting the BNO055 ... check your connections */
-//    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-//    while (1)
-//      ;
-//  }
+  //  if (!bno.begin())
+  //  {
+  //    /* There was a problem detecting the BNO055 ... check your connections */
+  //    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+  //    while (1)
+  //      ;
+  //  }
 
   int eeAddress = 0;
   long bnoID;
@@ -236,9 +250,9 @@ void setup() {
   sensor_t sensor;
 
   /*
-    *  Look for the sensor's unique ID at the beginning oF EEPROM.
-    *  This isn't foolproof, but it's better than nothing.
-    */
+   *  Look for the sensor's unique ID at the beginning oF EEPROM.
+   *  This isn't foolproof, but it's better than nothing.
+   */
   bno.getSensor(&sensor);
   if (bnoID != sensor.sensor_id)
   {
@@ -272,65 +286,65 @@ void setup() {
   bno.setExtCrystalUse(true);
 
   /* always recal the mag as It goes out of calibration very often */
-//  if (foundCalib)
-//  {
-//    Serial.println("Move sensor slightly to calibrate magnetometers");
-//    while (!bno.isFullyCalibrated())
-//    {
-//      bno.getEvent(&event);
-//      delay(BNO055_SAMPLERATE_DELAY_MS);
-//    }
-//  }
-//  else
-//  {
-//    Serial.println("Please Calibrate Sensor: ");
-//    while (!bno.isFullyCalibrated())
-//    {
-//      bno.getEvent(&event);
-//
-//      Serial.print("X: ");
-//      Serial.print(event.orientation.x, 4);
-//      Serial.print("\tY: ");
-//      Serial.print(event.orientation.y, 4);
-//      Serial.print("\tZ: ");
-//      Serial.print(event.orientation.z, 4);
-//
-//      /* Optional: Display calibration status */
-//      displayCalStatus();
-//
-//      /* New line for the next sample */
-//      Serial.println("");
-//
-//      /* Wait the specified delay before requesting new data */
-//      delay(BNO055_SAMPLERATE_DELAY_MS);
-//    }
-//  }
-//
-//  Serial.println("\nFully calibrated!");
-//  Serial.println("--------------------------------");
-//  Serial.println("Calibration Results: ");
-//  adafruit_bno055_offsets_t newCalib;
-//  bno.getSensorOffsets(newCalib);
-//  displaySensorOffsets(newCalib);
-//
-//  Serial.println("\n\nStoring calibration data to EEPROM...");
-//
-//  eeAddress = 0;
-//  bno.getSensor(&sensor);
-//  bnoID = sensor.sensor_id;
-//
-//  EEPROM.put(eeAddress, bnoID);
-//
-//  eeAddress += sizeof(long);
-//  EEPROM.put(eeAddress, newCalib);
-//  Serial.println("Data stored to EEPROM.");
-//
-//  Serial.println("\n--------------------------------\n");
-//  delay(500);
+  //  if (foundCalib)
+  //  {
+  //    Serial.println("Move sensor slightly to calibrate magnetometers");
+  //    while (!bno.isFullyCalibrated())
+  //    {
+  //      bno.getEvent(&event);
+  //      delay(BNO055_SAMPLERATE_DELAY_MS);
+  //    }
+  //  }
+  //  else
+  //  {
+  //    Serial.println("Please Calibrate Sensor: ");
+  //    while (!bno.isFullyCalibrated())
+  //    {
+  //      bno.getEvent(&event);
+  //
+  //      Serial.print("X: ");
+  //      Serial.print(event.orientation.x, 4);
+  //      Serial.print("\tY: ");
+  //      Serial.print(event.orientation.y, 4);
+  //      Serial.print("\tZ: ");
+  //      Serial.print(event.orientation.z, 4);
+  //
+  //      /* Optional: Display calibration status */
+  //      displayCalStatus();
+  //
+  //      /* New line for the next sample */
+  //      Serial.println("");
+  //
+  //      /* Wait the specified delay before requesting new data */
+  //      delay(BNO055_SAMPLERATE_DELAY_MS);
+  //    }
+  //  }
+  //
+  //  Serial.println("\nFully calibrated!");
+  //  Serial.println("--------------------------------");
+  //  Serial.println("Calibration Results: ");
+  //  adafruit_bno055_offsets_t newCalib;
+  //  bno.getSensorOffsets(newCalib);
+  //  displaySensorOffsets(newCalib);
+  //
+  //  Serial.println("\n\nStoring calibration data to EEPROM...");
+  //
+  //  eeAddress = 0;
+  //  bno.getSensor(&sensor);
+  //  bnoID = sensor.sensor_id;
+  //
+  //  EEPROM.put(eeAddress, bnoID);
+  //
+  //  eeAddress += sizeof(long);
+  //  EEPROM.put(eeAddress, newCalib);
+  //  Serial.println("Data stored to EEPROM.");
+  //
+  //  Serial.println("\n--------------------------------\n");
+  //  delay(500);
   permission = &(read_data[0]);
 }
 
-uint8_t  b;
+uint8_t b;
 int avail;
 int avail2;
 int avail3;
@@ -342,122 +356,131 @@ uint8_t lidar_send_buffer[MAX_BUFFER_SIZE];
 uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 uint8_t sensor_send_buffer[MAX_BUFFER_SIZE];
 
-void send(char type[5], const uint8_t* data, uint32_t data_len, uint8_t* send_buffer) {
+void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_buffer)
+{
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
   Serial4.write(send_buffer, written);
   Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
-void loop() {
-  //Terabee 1 Code
+void loop()
+{
+  // Terabee 1 Code
   avail = Serial1.available();
-  if (avail > 0) {
-    if (state == MSG_INIT || state == MSG_BEGIN) {
+  if (avail > 0)
+  {
+    if (state == MSG_INIT || state == MSG_BEGIN)
+    {
       find_msg(state, Serial1);
-    } else if (state == MSG_DATA) {
+    }
+    else if (state == MSG_DATA)
+    {
       Serial1.readBytes(terabee1_databuffer, 16);
       state = MSG_INIT;
       convert_b8_to_b16(terabee1_databuffer, terabee1_data);
-//      for (int i = 0; i < 8; i++) {
-//        Serial.print("Sensor1 ");
-//        Serial.print(i);
-//        Serial.print(": ");
-//        Serial.println(terabee1_data[i]);
-//      }
+      //      for (int i = 0; i < 8; i++) {
+      //        Serial.print("Sensor1 ");
+      //        Serial.print(i);
+      //        Serial.print(": ");
+      //        Serial.println(terabee1_data[i]);
+      //      }
     }
   }
-  
-//  // Terabee 2 code
-//  avail2 = Serial4.available();
-//  if (avail2 > 0) {
-//    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-//      find_msg(state2, Serial4);
-//    } else if (state2 == MSG_DATA) {
-//      Serial4.readBytes(terabee2_databuffer, 16);
-//      state2 = MSG_INIT;
-//      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-////      for (int i = 0; i < 8; i++) {
-////        Serial.print("Sensor2 ");
-////        Serial.print(i);
-////        Serial.print(": ");
-////        Serial.println(terabee2_data[i]);
-////      }
-//    }
-//  }
-  
+
+  //  // Terabee 2 code
+  //  avail2 = Serial4.available();
+  //  if (avail2 > 0) {
+  //    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
+  //      find_msg(state2, Serial4);
+  //    } else if (state2 == MSG_DATA) {
+  //      Serial4.readBytes(terabee2_databuffer, 16);
+  //      state2 = MSG_INIT;
+  //      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
+  ////      for (int i = 0; i < 8; i++) {
+  ////        Serial.print("Sensor2 ");
+  ////        Serial.print(i);
+  ////        Serial.print(": ");
+  ////        Serial.println(terabee2_data[i]);
+  ////      }
+  //    }
+  //  }
+
   avail3 = Serial7.available();
-  if (avail3 > 0) {
-    if (state3 == MSG_INIT || state3 == MSG_BEGIN) {
-      find_msg(state3, Serial7);    } else if (state3 == MSG_DATA) {
+  if (avail3 > 0)
+  {
+    if (state3 == MSG_INIT || state3 == MSG_BEGIN)
+    {
+      find_msg(state3, Serial7);
+    }
+    else if (state3 == MSG_DATA)
+    {
       Serial7.readBytes(terabee3_databuffer, 16);
       state3 = MSG_INIT;
       convert_b8_to_b16(terabee3_databuffer, terabee3_data);
       // imu code
-        
-//        Serial.print("X: ");
-//        Serial.print(event.orientation.x, 4);
-//        Serial.print("\tY: ");
-//        Serial.print(event.orientation.y, 4);
-//        Serial.print("\tZ: ");
-//        Serial.print(event.orientation.z, 4);
 
-
+      //        Serial.print("X: ");
+      //        Serial.print(event.orientation.x, 4);
+      //        Serial.print("\tY: ");
+      //        Serial.print(event.orientation.y, 4);
+      //        Serial.print("\tZ: ");
+      //        Serial.print(event.orientation.z, 4);
     }
   }
-//Serial.println(read_data[0]);
-//Serial.println(Serial4.available());
+  // Serial.println(read_data[0]);
+  // Serial.println(Serial4.available());
 
+  // Lidar Code
+  //  Serial.println(IS_OK(lidar.waitPoint()));
+  if (IS_OK(lidar.waitPoint()))
+  {
+    uint16_t distance = (uint16_t)lidar.getCurrentPoint().distance; // distance value in mm unit
+    uint16_t angle = (uint16_t)lidar.getCurrentPoint().angle;       // angle value in degrees
 
-  //Lidar Code
-//  Serial.println(IS_OK(lidar.waitPoint()));
-  if (IS_OK(lidar.waitPoint())) {
-        uint16_t distance = (uint16_t) lidar.getCurrentPoint().distance; //distance value in mm unit
-        uint16_t angle    = (uint16_t) lidar.getCurrentPoint().angle; //angle value in degrees
-               
-//        Serial.println("Angle:" + String(angle));
-//        Serial.println("Distance:" + String(distance));
-        if (lidar_array_index <= LIDAR_DATA_POINTS-1) {
-          LidarData[lidar_array_index*2] = angle;
-          LidarData[lidar_array_index*2+1] = distance;
-          lidar_array_index++;
-          }
-        }
-    else {
-      
-      // try to detect RPLIDAR... 
-      rplidar_response_device_info_t info;
-      if (IS_OK(lidar.getDeviceInfo(info, 100))) {
-         // detected...
-         lidar.startScan();
-         // start motor rotating at max allowed speed
-         analogWrite(RPLIDAR_MOTOR, 255);
-         delay(1000);
-      }
+    //        Serial.println("Angle:" + String(angle));
+    //        Serial.println("Distance:" + String(distance));
+    if (lidar_array_index <= LIDAR_DATA_POINTS - 1)
+    {
+      LidarData[lidar_array_index * 2] = angle;
+      LidarData[lidar_array_index * 2 + 1] = distance;
+      lidar_array_index++;
     }
+  }
+  else
+  {
 
-      
-
-    if (lidar_array_index == LIDAR_DATA_POINTS) {
-      bno.getEvent(&event);  
-      imu_data[0] = (int)event.orientation.x;
-      imu_data[1] = (int)event.orientation.y;
-      imu_data[2] = (int)event.orientation.z;
-      
-      convert_b16_to_b8(imu_data, imu_databuffer, 3);        
-    
-        convert_b16_to_b8(LidarData, lidar_databuffer,LIDAR_DATA_POINTS*2);
-        lidar_array_index=0; 
-        if (1){
-        //delay(10);
-        //Copying data arrays into overall sensor data buffer
-        memcpy(sensor_databuffer, terabee1_databuffer, TERABEE_DATA_LEN);
-        memcpy(sensor_databuffer+TERABEE_DATA_LEN,terabee2_databuffer, TERABEE_DATA_LEN);
-        memcpy(sensor_databuffer+TERABEE_DATA_LEN*2,terabee3_databuffer, TERABEE_DATA_LEN);
-        memcpy(sensor_databuffer+TERABEE_DATA_LEN*3,lidar_databuffer, LIDAR_DATA_LEN);
-        memcpy(sensor_databuffer+TERABEE_DATA_LEN*3+LIDAR_DATA_LEN,imu_databuffer, IMU_DATA_LEN);
-        send((char*)"SENS", sensor_databuffer, SENSOR_DATA_LEN, sensor_send_buffer);
-        }
+    // try to detect RPLIDAR...
+    rplidar_response_device_info_t info;
+    if (IS_OK(lidar.getDeviceInfo(info, 100)))
+    {
+      // detected...
+      lidar.startScan();
+      // start motor rotating at max allowed speed
+      analogWrite(RPLIDAR_MOTOR, 255);
+      delay(1000);
     }
+  }
 
+  if (lidar_array_index == LIDAR_DATA_POINTS)
+  {
+    bno.getEvent(&event);
+    imu_data[0] = (int)event.orientation.x;
+    imu_data[1] = (int)event.orientation.y;
+    imu_data[2] = (int)event.orientation.z;
 
+    convert_b16_to_b8(imu_data, imu_databuffer, 3);
 
+    convert_b16_to_b8(LidarData, lidar_databuffer, LIDAR_DATA_POINTS * 2);
+    lidar_array_index = 0;
+    if (1)
+    {
+      // delay(10);
+      // Copying data arrays into overall sensor data buffer
+      memcpy(sensor_databuffer, terabee1_databuffer, TERABEE_DATA_LEN);
+      memcpy(sensor_databuffer + TERABEE_DATA_LEN, terabee2_databuffer, TERABEE_DATA_LEN);
+      memcpy(sensor_databuffer + TERABEE_DATA_LEN * 2, terabee3_databuffer, TERABEE_DATA_LEN);
+      memcpy(sensor_databuffer + TERABEE_DATA_LEN * 3, lidar_databuffer, LIDAR_DATA_LEN);
+      memcpy(sensor_databuffer + TERABEE_DATA_LEN * 3 + LIDAR_DATA_LEN, imu_databuffer, IMU_DATA_LEN);
+      send((char *)"SENS", sensor_databuffer, SENSOR_DATA_LEN, sensor_send_buffer);
+    }
+  }
 }
