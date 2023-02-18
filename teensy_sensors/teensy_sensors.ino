@@ -22,6 +22,9 @@
 #include "R2Protocol/R2Protocol.h"
 #include <EEPROM.h>
 
+// Macro to set if print statements for sensor data receiving is desired
+#define DEBUG 0
+
 #define START1 77
 #define START2 70
 
@@ -41,6 +44,13 @@
 #define LIDAR_DATA_LEN LIDAR_DATA_POINTS * 4
 #define IMU_DATA_LEN 6
 #define SENSOR_DATA_LEN (TERABEE_DATA_LEN * 3 + IMU_DATA_LEN + LIDAR_DATA_LEN)
+
+// Macros for indexes of specific sensor data in sensor_data_buffer
+#define TB1_START 0
+#define TB2_START TB1_START+TERABEE_DATA_LEN
+#define TB3_START TB2_START+TERABEE_DATA_LEN
+#define LIDAR_START TB2_START+TERABEE_DATA_LEN
+#define IMU_START TERABEE_DATA_LEN * 3 + LIDAR_DATA_LEN
 // Terabee Variables
 int test_var = 0;
 int state;
@@ -360,7 +370,8 @@ void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_bu
 {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
   Serial4.write(send_buffer, written);
-  Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
+  if(DEBUG)
+    Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
 void loop()
 {
@@ -368,15 +379,17 @@ void loop()
   avail = Serial1.available();
   if (avail > 0)
   {
+    if(DEBUG)
+      Serial.println("Reading TB1");
     if (state == MSG_INIT || state == MSG_BEGIN)
     {
       find_msg(state, Serial1);
     }
     else if (state == MSG_DATA)
     {
-      Serial1.readBytes(terabee1_databuffer, 16);
+      Serial1.readBytes(sensor_databuffer+TB1_START, 16);
       state = MSG_INIT;
-      convert_b8_to_b16(terabee1_databuffer, terabee1_data);
+      //convert_b8_to_b16(terabee1_databuffer, terabee1_data);
       //      for (int i = 0; i < 8; i++) {
       //        Serial.print("Sensor1 ");
       //        Serial.print(i);
@@ -407,15 +420,17 @@ void loop()
   avail3 = Serial7.available();
   if (avail3 > 0)
   {
+    if(DEBUG)
+      Serial.println("Reading TB3");
     if (state3 == MSG_INIT || state3 == MSG_BEGIN)
     {
       find_msg(state3, Serial7);
     }
     else if (state3 == MSG_DATA)
     {
-      Serial7.readBytes(terabee3_databuffer, 16);
+      Serial7.readBytes(sensor_databuffer+TB3_START, 16);
       state3 = MSG_INIT;
-      convert_b8_to_b16(terabee3_databuffer, terabee3_data);
+      //convert_b8_to_b16(terabee3_databuffer, terabee3_data);
       // imu code
 
       //        Serial.print("X: ");
@@ -459,27 +474,23 @@ void loop()
       delay(1000);
     }
   }
-
   if (lidar_array_index == LIDAR_DATA_POINTS)
   {
+    if(DEBUG)
+      Serial.println("Reading imu");
     bno.getEvent(&event);
     imu_data[0] = (int)event.orientation.x;
     imu_data[1] = (int)event.orientation.y;
     imu_data[2] = (int)event.orientation.z;
 
-    convert_b16_to_b8(imu_data, imu_databuffer, 3);
+    convert_b16_to_b8(imu_data, sensor_databuffer+IMU_START, 3);
 
-    convert_b16_to_b8(LidarData, lidar_databuffer, LIDAR_DATA_POINTS * 2);
+    convert_b16_to_b8(LidarData, sensor_databuffer+LIDAR_START, LIDAR_DATA_POINTS * 2);
     lidar_array_index = 0;
     if (1)
     {
       // delay(10);
       // Copying data arrays into overall sensor data buffer
-      memcpy(sensor_databuffer, terabee1_databuffer, TERABEE_DATA_LEN);
-      memcpy(sensor_databuffer + TERABEE_DATA_LEN, terabee2_databuffer, TERABEE_DATA_LEN);
-      memcpy(sensor_databuffer + TERABEE_DATA_LEN * 2, terabee3_databuffer, TERABEE_DATA_LEN);
-      memcpy(sensor_databuffer + TERABEE_DATA_LEN * 3, lidar_databuffer, LIDAR_DATA_LEN);
-      memcpy(sensor_databuffer + TERABEE_DATA_LEN * 3 + LIDAR_DATA_LEN, imu_databuffer, IMU_DATA_LEN);
       send((char *)"SENS", sensor_databuffer, SENSOR_DATA_LEN, sensor_send_buffer);
     }
   }
