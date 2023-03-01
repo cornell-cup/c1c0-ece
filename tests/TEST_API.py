@@ -6,14 +6,10 @@ import time
 Terabee API for use with path_planning. 
 
 """
-#sys.path.append('/home/cornellcup/c1c0-main/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
-
+sys.path.append('/home/cornellcup/c1c0-main/c1c0-movement/c1c0-movement/Locomotion') #Might need to be resolved
 import R2Protocol2 as r2p
 
 ser = None
-
-#If wanting to run TEST_API main function to debug, set to 1
-TESTING = 1
 
 LIDAR_DATA_POINTS = 360
 LIDAR_DATA_LEN = LIDAR_DATA_POINTS * 4
@@ -89,7 +85,7 @@ def decode_arrays():
     global imu_array
 
     good_data = False
-#    print("GET ARRAY FUNCTION")
+    print("GET ARRAY FUNCTION")
     while(not good_data):
         terabee_array_1 = []
         terabee_array_2 = []
@@ -97,19 +93,21 @@ def decode_arrays():
         ldr_array = []
         imu_array = []
 
-#        print("IN LOOP")
+        #print("IN LOOP")
         ser_msg = ser.read_until(b"\xd2\xe2\xf2")
         ser.reset_input_buffer()
-        #print(ser_msg)
+        # ~ print(ser_msg)
         # ~ time.sleep(0.001)
-#        print("GOT MESSAGE")
+        # ~ print("GOT MESSAGE")
         mtype, data, status = r2p.decode(ser_msg)
-#        print("TYPE: " + str(mtype))
-#        print("")
-#        print("Data: " + str(data))
-#        print("")
-#        print("Status: " + str(status))
-        #print("TYPE: \n" + str(mtype))
+        """
+        print("TYPE: " + str(mtype))
+        print("")
+        print("Data: " + str(data))
+        print("")
+        print("Status: " + str(status))
+        """
+        print("TYPE: \n" + str(mtype))
         #print("DATA:" + str(data))
 
         if (mtype == b'IR\x00\x00'):
@@ -295,42 +293,43 @@ def lidar_tuple_array_append(data, target_array):
         distance = distance_msbs<<8 | distance_lsbs
         target_array.append((angle,distance))
         
-def sensor_token():
+def sensor_token(msg_type, token):
     """
-    Sends a downstream message to request sensor data packet.
+    Parameter: send_permission is either a 0 or 1. 1 if sensors should send data
+    0 if sensors should cease to send data. 
     """
-    req = r2p.encode(b'SNSR', token.to_bytes(1, 'big'))
+    req = r2p.encode(msg_type, token.to_bytes(1, 'big'))
     ser.write(req)
     #print(send_message)
     
 
 if __name__ == '__main__':
-    if(TESTING):
-        init_serial('/dev/ttyTHS1', 115200)
-        ser.reset_input_buffer()
+    print(TOTAL_BYTES)
+    init_serial('/dev/ttyTHS1', 115200)
+    ser.reset_input_buffer()
 
-        print("STARTED")
+    #print("STARTED")
 
-        try:
+    try:
+    
+        while True:
+            
         
-            while True:
-                
-                if ser.in_waiting:
-                    print("Getting data")
-                    decode_arrays()
-                    ldr = get_array('LDR')
-                    tb1 = get_array('TB1')
-                    tb2 = get_array('TB2')
-                    tb3 = get_array('TB3')
-                    imu = get_array('IMU')
-                
-                    print(tb1)
-                    print(imu)
-                # ~ else:
-                    # ~ print("NOT GOT")
-                # ~ time.sleep(1)
-            ser.close()
-        
+            if ser.in_waiting:
+                decode_arrays()
+                ldr = get_array('LDR')
+                tb1 = get_array('TB1')
+                tb2 = get_array('TB2')
+                tb3 = get_array('TB3')
+                imu = get_array('IMU')
+            
+                print(tb2)
+            # ~ else:
+                # ~ print("NOT GOT")
+            # ~ time.sleep(1)
+        ser.close()
+    
 
-        except KeyboardInterrupt:
-            ser.close()
+    except KeyboardInterrupt:
+        ser.close()
+    """
