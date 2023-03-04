@@ -4,20 +4,14 @@
  *
  *  The all-encompassing script for the peripheral sensors on C1C0 used to
  *  aid path planning and locomotion.
- *  Sensors added - Terabee IR ToF 1, Terabee IR ToF 2, LIDAR, Adafruit BNO055
+ *  Sensors added - Terabee IR ToF 1, Terabee IR ToF 2, LIDAR
  *
  *   Authors - Brett Sawka, Stefen Pegels, Aparajito Saha
  */
 
-/*  I2C Info
- *  IMU Device: Adafruit BNO055
- *  Device address ->
- */
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
 #include <RPLidar.h>
 #include "R2Protocol/R2Protocol.h"
 #include <EEPROM.h>
@@ -36,21 +30,18 @@
 #define MSG_DONE 50
 
 #define RPLIDAR_MOTOR 3 // PWM pin for controlling RPLIDAR motor speed - connect to MOTOCTRL
-#define BNO055_SAMPLERATE_DELAY_MS (100)
 
 #define LIDAR_DATA_POINTS 360
 #define MAX_BUFFER_SIZE 2048
 #define TERABEE_DATA_LEN 16
 #define LIDAR_DATA_LEN LIDAR_DATA_POINTS * 4
-#define IMU_DATA_LEN 6
-#define SENSOR_DATA_LEN (TERABEE_DATA_LEN * 3 + IMU_DATA_LEN + LIDAR_DATA_LEN)
+#define SENSOR_DATA_LEN (TERABEE_DATA_LEN * 3 + LIDAR_DATA_LEN)
 
 // Macros for indexes of specific sensor data in sensor_data_buffer
 #define TB1_START 0
 #define TB2_START TB1_START + TERABEE_DATA_LEN
 #define TB3_START TB2_START + TERABEE_DATA_LEN
 #define LIDAR_START TB2_START + TERABEE_DATA_LEN
-#define IMU_START TERABEE_DATA_LEN * 3 + LIDAR_DATA_LEN
 // Terabee Variables
 int test_var = 0;
 int state;
@@ -70,11 +61,6 @@ const uint16_t zero_b16 = 0;
 uint8_t lidar_databuffer[LIDAR_DATA_POINTS * 4];
 int lidar_array_index;
 
-// IMU variables
-sensors_event_t event;
-uint8_t imu_databuffer[6];
-uint16_t imu_data[3];
-bool foundCalib;
 // Total sensor data buffer where all other sensor data goes in
 uint8_t sensor_databuffer[SENSOR_DATA_LEN];
 
@@ -89,7 +75,6 @@ uint8_t read_data[1] = {0};
 uint32_t read_data_len = 1;
 int count;
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
 RPLidar lidar; // Instantiate lidar
 
@@ -149,65 +134,9 @@ void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len)
   }
 }
 
-void displaySensorDetails(void)
-{
-  sensor_t sensor;
-  bno.getSensor(&sensor);
-}
 
-/**************************************************************************/
-/*
-    Display some basic info about the sensor status
-    */
-/**************************************************************************/
-void displaySensorStatus(void)
-{
-  /* Get the system status values (mostly for debugging purposes) */
-  uint8_t system_status, self_test_results, system_error;
-  system_status = self_test_results = system_error = 0;
-  bno.getSystemStatus(&system_status, &self_test_results, &system_error);
-}
 
-/**************************************************************************/
-/*
-    Display sensor calibration status
-    */
-/**************************************************************************/
-void displayCalStatus(void)
-{
-  /* Get the four calibration values (0..3) */
-  /* Any sensor data reporting 0 should be ignored, */
-  /* 3 means 'fully calibrated" */
-  uint8_t system, gyro, accel, mag;
-  system = gyro = accel = mag = 0;
-  bno.getCalibration(&system, &gyro, &accel, &mag);
 
-  /* The data should be ignored until the system calibration is > 0 */
-  Serial.print("\t");
-  if (!system)
-  {
-    Serial.print("! ");
-  }
-
-  /* Display the individual values */
-  Serial.print("Sys:");
-  Serial.print(system, DEC);
-  Serial.print(" G:");
-  Serial.print(gyro, DEC);
-  Serial.print(" A:");
-  Serial.print(accel, DEC);
-  Serial.print(" M:");
-  Serial.print(mag, DEC);
-}
-
-/**************************************************************************/
-/*
-    Display the raw calibration offset and radius data
-    */
-/**************************************************************************/
-void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
-{
-}
 
 byte mode[4] = {0x00, 0x11, 0x02, 0x4C};
 
@@ -227,8 +156,6 @@ void setup()
   Serial3.begin(38400);  // Lidar
   Serial7.begin(115200); // Terabee3
   // Serial4.begin(38400); //Jetson
-  bno.begin(); // IMU Initialization
-  bno.enterNormalMode();
   lidar.begin(Serial3); // Lidar Initialization
 
   delay(500); // take some time
@@ -238,119 +165,6 @@ void setup()
   Serial7.write(mode, 4);
   reset_input_buffer();
 
-  Serial.println("Orientation Sensor Test");
-  Serial.println("");
-
-  /* Initialise the sensor */
-  //  if (!bno.begin())
-  //  {
-  //    /* There was a problem detecting the BNO055 ... check your connections */
-  //    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-  //    while (1)
-  //      ;
-  //  }
-
-  int eeAddress = 0;
-  long bnoID;
-  bool foundCalib = false;
-
-  EEPROM.get(eeAddress, bnoID);
-
-  adafruit_bno055_offsets_t calibrationData;
-  sensor_t sensor;
-
-  /*
-   *  Look for the sensor's unique ID at the beginning oF EEPROM.
-   *  This isn't foolproof, but it's better than nothing.
-   */
-  bno.getSensor(&sensor);
-  if (bnoID != sensor.sensor_id)
-  {
-    Serial.println("\nNo Calibration Data for this sensor exists in EEPROM");
-    delay(500);
-  }
-  else
-  {
-    Serial.println("\nFound Calibration for this sensor in EEPROM.");
-    eeAddress += sizeof(long);
-    EEPROM.get(eeAddress, calibrationData);
-
-    displaySensorOffsets(calibrationData);
-
-    Serial.println("\n\nRestoring Calibration data to the BNO055...");
-    bno.setSensorOffsets(calibrationData);
-
-    Serial.println("\n\nCalibration data loaded into BNO055");
-    foundCalib = true;
-  }
-
-  delay(1000);
-
-  /* Display some basic information on this sensor */
-  displaySensorDetails();
-
-  /* Optional: Display current status */
-  displaySensorStatus();
-
-  /* Crystal must be configured AFTER loading calibration data into BNO055. */
-  bno.setExtCrystalUse(true);
-
-  /* always recal the mag as It goes out of calibration very often */
-  //  if (foundCalib)
-  //  {
-  //    Serial.println("Move sensor slightly to calibrate magnetometers");
-  //    while (!bno.isFullyCalibrated())
-  //    {
-  //      bno.getEvent(&event);
-  //      delay(BNO055_SAMPLERATE_DELAY_MS);
-  //    }
-  //  }
-  //  else
-  //  {
-  //    Serial.println("Please Calibrate Sensor: ");
-  //    while (!bno.isFullyCalibrated())
-  //    {
-  //      bno.getEvent(&event);
-  //
-  //      Serial.print("X: ");
-  //      Serial.print(event.orientation.x, 4);
-  //      Serial.print("\tY: ");
-  //      Serial.print(event.orientation.y, 4);
-  //      Serial.print("\tZ: ");
-  //      Serial.print(event.orientation.z, 4);
-  //
-  //      /* Optional: Display calibration status */
-  //      displayCalStatus();
-  //
-  //      /* New line for the next sample */
-  //      Serial.println("");
-  //
-  //      /* Wait the specified delay before requesting new data */
-  //      delay(BNO055_SAMPLERATE_DELAY_MS);
-  //    }
-  //  }
-  //
-  //  Serial.println("\nFully calibrated!");
-  //  Serial.println("--------------------------------");
-  //  Serial.println("Calibration Results: ");
-  //  adafruit_bno055_offsets_t newCalib;
-  //  bno.getSensorOffsets(newCalib);
-  //  displaySensorOffsets(newCalib);
-  //
-  //  Serial.println("\n\nStoring calibration data to EEPROM...");
-  //
-  //  eeAddress = 0;
-  //  bno.getSensor(&sensor);
-  //  bnoID = sensor.sensor_id;
-  //
-  //  EEPROM.put(eeAddress, bnoID);
-  //
-  //  eeAddress += sizeof(long);
-  //  EEPROM.put(eeAddress, newCalib);
-  //  Serial.println("Data stored to EEPROM.");
-  //
-  //  Serial.println("\n--------------------------------\n");
-  //  delay(500);
   permission = &(read_data[0]);
 }
 
@@ -363,7 +177,6 @@ uint8_t terabee1_send_buffer[MAX_BUFFER_SIZE];
 uint8_t terabee2_send_buffer[MAX_BUFFER_SIZE];
 uint8_t terabee3_send_buffer[MAX_BUFFER_SIZE];
 uint8_t lidar_send_buffer[MAX_BUFFER_SIZE];
-uint8_t imu_send_buffer[MAX_BUFFER_SIZE];
 uint8_t sensor_send_buffer[MAX_BUFFER_SIZE];
 
 void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_buffer)
@@ -479,13 +292,6 @@ void loop()
   {
     if(DEBUG)
       Serial.println("Reading imu");
-    bno.getEvent(&event);
-    imu_data[0] = (int)event.orientation.x;
-    imu_data[1] = (int)event.orientation.y;
-    imu_data[2] = (int)event.orientation.z;
-
-    convert_b16_to_b8(imu_data, sensor_databuffer+IMU_START, 3);
-
     convert_b16_to_b8(LidarData, sensor_databuffer+LIDAR_START, LIDAR_DATA_POINTS * 2);
     lidar_array_index = 0;
     if (1)
