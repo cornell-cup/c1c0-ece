@@ -17,7 +17,7 @@
 #include <EEPROM.h>
 
 // Macro to set if print statements for sensor data receiving is desired
-#define DEBUG 0
+#define DEBUG 1
 
 #define START1 77
 #define START2 70
