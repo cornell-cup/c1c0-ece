@@ -9,7 +9,6 @@
  *   Authors - Brett Sawka, Stefen Pegels, Aparajito Saha
  */
 
-
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <RPLidar.h>
@@ -41,7 +40,7 @@
 #define TB1_START 0
 #define TB2_START TB1_START + TERABEE_DATA_LEN
 #define TB3_START TB2_START + TERABEE_DATA_LEN
-#define LIDAR_START TB2_START + TERABEE_DATA_LEN
+#define LIDAR_START TB3_START + TERABEE_DATA_LEN
 // Terabee Variables
 int test_var = 0;
 int state;
@@ -62,7 +61,7 @@ uint8_t lidar_databuffer[LIDAR_DATA_POINTS * 4];
 int lidar_array_index;
 
 // Total sensor data buffer where all other sensor data goes in
-uint8_t sensor_databuffer[SENSOR_DATA_LEN];
+uint8_t sensor_databuffer[SENSOR_DATA_LEN] = {0};
 
 // Variables to Read From Jetson
 uint8_t *permission;
@@ -74,7 +73,6 @@ char read_type[4];
 uint8_t read_data[1] = {0};
 uint32_t read_data_len = 1;
 int count;
-
 
 RPLidar lidar; // Instantiate lidar
 
@@ -134,10 +132,6 @@ void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len)
   }
 }
 
-
-
-
-
 byte mode[4] = {0x00, 0x11, 0x02, 0x4C};
 
 inline void reset_input_buffer()
@@ -183,8 +177,7 @@ void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_bu
 {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
   Serial4.write(send_buffer, written);
-  if (DEBUG)
-    Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
+  Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
 void loop()
 {
@@ -272,7 +265,6 @@ void loop()
       LidarData[lidar_array_index * 2 + 1] = distance;
       lidar_array_index++;
     }
-    
   }
   else
   {
@@ -290,9 +282,7 @@ void loop()
   }
   if (lidar_array_index == LIDAR_DATA_POINTS)
   {
-    if(DEBUG)
-      Serial.println("Reading imu");
-    convert_b16_to_b8(LidarData, sensor_databuffer+LIDAR_START, LIDAR_DATA_POINTS * 2);
+    convert_b16_to_b8(LidarData, sensor_databuffer + LIDAR_START, LIDAR_DATA_POINTS * 2);
     lidar_array_index = 0;
     if (1)
     {

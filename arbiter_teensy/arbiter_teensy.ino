@@ -116,7 +116,6 @@ bool foundCalib;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
 
-
 void displaySensorDetails(void)
 {
   sensor_t sensor;
@@ -447,8 +446,8 @@ void serialEvent3()
   }
   if (ser3_count == msg_len3)
   {
-        //Serial.println(ser3_count);
-    //    Serial.println(recv_buf3[1573]);
+    // Serial.println(ser3_count);
+    //     Serial.println(recv_buf3[1573]);
     r2p_decode(recv_buf3, msg_len3, &checksum3, type3, msg3, &msg_len3);
     bno.getEvent(&event);
     imu_data[0] = (int)event.orientation.x;
@@ -456,7 +455,7 @@ void serialEvent3()
     imu_data[2] = (int)event.orientation.z;
 
     convert_b16_to_b8(imu_data, msg3 + msg_len3, 3);
-    r2p_encode(type3, msg3, msg_len3+6, recv_buf3, MAX_BUFFER_SIZE);
+    r2p_encode(type3, msg3, msg_len3 + 6, recv_buf3, MAX_BUFFER_SIZE);
     ser3_count = 0;
 
     STATE3 = 0;
@@ -656,7 +655,6 @@ void serialEvent1()
   }
 }
 
-
 void loop()
 {
   // Successfully found a packet from the jetson
@@ -695,7 +693,7 @@ void loop()
     }
     else if (!strcmp(type, type3_u))
     { // Upstream Serial3
-      Serial1.write(recv_buf3, msg_len3+22);
+      Serial1.write(recv_buf3, msg_len3 + 22);
 
       Serial1.flush();
       Serial.println("Wrote " + String(type) + " data upstream");
