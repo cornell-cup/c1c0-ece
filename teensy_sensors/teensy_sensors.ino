@@ -144,22 +144,25 @@ inline void reset_input_buffer()
 void setup()
 {
   // put your setup code here, to run once:
-  Serial.begin(9600);    // Monitor
-  Serial1.begin(115200); // Terabee1
+  Serial.begin(115200);  // Monitor
+  Serial5.begin(115200); // Terabee1
   Serial4.begin(115200); // Arbiter Teensy
   Serial3.begin(38400);  // Lidar
   Serial7.begin(115200); // Terabee3
   // Serial4.begin(38400); //Jetson
   lidar.begin(Serial3); // Lidar Initialization
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
 
   delay(500); // take some time
 
-  Serial1.write(mode, 4); // write the command for hex output
+  Serial4.write(mode, 4); // write the command for hex output
                           //  Serial4.write(mode, 4); // write the command for hex output
   Serial7.write(mode, 4);
   reset_input_buffer();
 
   permission = &(read_data[0]);
+  Serial.println("Stuff");
 }
 
 uint8_t b;
@@ -176,24 +179,23 @@ uint8_t sensor_send_buffer[MAX_BUFFER_SIZE];
 void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_buffer)
 {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial4.write(send_buffer, written);
+  Serial5.write(send_buffer, written);
   Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
 void loop()
 {
   // Terabee 1 Code
-  avail = Serial1.available();
+  avail = Serial4.available();
   if (avail > 0)
   {
-    if (DEBUG)
-      Serial.println("Reading TB1");
+    //if (DEBUG)
+    //  Serial.println("Reading TB1");
     if (state == MSG_INIT || state == MSG_BEGIN)
     {
-      find_msg(state, Serial1);
     }
     else if (state == MSG_DATA)
     {
-      Serial1.readBytes(sensor_databuffer + TB1_START, 16);
+      Serial4.readBytes(sensor_databuffer + TB1_START, 16);
       state = MSG_INIT;
       // convert_b8_to_b16(terabee1_databuffer, terabee1_data);
       //       for (int i = 0; i < 8; i++) {
@@ -256,7 +258,6 @@ void loop()
   {
     uint16_t distance = (uint16_t)lidar.getCurrentPoint().distance; // distance value in mm unit
     uint16_t angle = (uint16_t)lidar.getCurrentPoint().angle;       // angle value in degrees
-
     //        Serial.println("Angle:" + String(angle));
     //        Serial.println("Distance:" + String(distance));
     if (lidar_array_index <= LIDAR_DATA_POINTS - 1)

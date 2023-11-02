@@ -15,12 +15,14 @@
 #include <utility/imumaths.h>
 #include <EEPROM.h>
 
+#define DEBUG
+
 // Uncomment which serial ports are in use, make sure to define their parameters below
-// #define SER2
+#define SER2
 #define SER3
-// #define SER4
-// #define SER5
-// #define SER6
+#define SER4
+#define SER5
+#define SER6
 // #define SER7
 
 // imu define
@@ -59,17 +61,17 @@ uint16_t ser3_count = 0;
 uint8_t STATE4 = 0;
 uint8_t recv_buf4[2048];
 uint16_t msg_len4 = 29;  // upstream packet length (data len) + 16
-char type4_d[] = "loco"; // Downstream type
-char type4_u[] = "LOCR"; // Upstream type (NOT NEEDED FOR PATH_PLANNING)
+char type4_d[] = "STR";  // Downstream type
+char type4_u[] = "STRR"; // Upstream type (NOT NEEDED FOR PATH_PLANNING)
 uint16_t ser4_count = 0;
 #endif
 
 #ifdef SER5
 uint8_t STATE5 = 0;
 uint8_t recv_buf5[2048];
-uint16_t msg_len5 = 0; // upstream packet length (data len) + 16
-char type5_d[] = "";   // Downstream type
-char type5_u[] = "";   // Upstream type
+uint16_t msg_len5 = 0;   // upstream packet length (data len) + 16
+char type5_d[] = "loco"; // Downstream type
+char type5_u[] = "LOCR"; // Upstream type
 uint16_t ser5_count = 0;
 #endif
 
@@ -192,7 +194,9 @@ end of added IMU code uphere
 
 void setup()
 {
-
+  Serial.println("Started");
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
   Serial.begin(115200);  // Serial monitor
   Serial1.begin(115200); // TX1/RX1
 
@@ -215,8 +219,15 @@ void setup()
 #ifdef SER7
   Serial7.begin(115200);
 #endif
-
-  bno.begin(); // IMU Initialization
+  /* Initialise the sensor */
+  if (!bno.begin())
+  {
+    /* There was a problem detecting the BNO055 ... check your connections */
+    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+    while (1)
+      ;
+  }
+  Serial.println("BNO5 detected");
   bno.enterNormalMode();
 
   while (Serial1.available() > 0)
@@ -230,15 +241,6 @@ void setup()
   */
   Serial.println("Orientation Sensor Test");
   Serial.println("");
-
-  /* Initialise the sensor */
-  //  if (!bno.begin())
-  //  {
-  //    /* There was a problem detecting the BNO055 ... check your connections */
-  //    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-  //    while (1)
-  //      ;
-  //  }
 
   int eeAddress = 0;
   long bnoID;
@@ -254,6 +256,7 @@ void setup()
    *  This isn't foolproof, but it's better than nothing.
    */
   bno.getSensor(&sensor);
+  Serial.println("got sensor");
   if (bnoID != sensor.sensor_id)
   {
     Serial.println("\nNo Calibration Data for this sensor exists in EEPROM");
@@ -344,6 +347,7 @@ void setup()
   /*
   End of added IMU code in setup
   */
+  Serial.println("starting");
 }
 
 inline uint8_t end_cmp(uint8_t *end_arr[3])
@@ -411,7 +415,7 @@ void serialEvent3()
 {
   if (Serial3.available())
   {
-    //    Serial.println("Reading from ser3");
+    // Serial.println("Reading from ser3");
     recv_buf3[ser3_count++] = Serial3.read();
     if (ser3_count < msg_len3)
     {
@@ -447,7 +451,6 @@ void serialEvent3()
   if (ser3_count == msg_len3)
   {
     // Serial.println(ser3_count);
-    //     Serial.println(recv_buf3[1573]);
     r2p_decode(recv_buf3, msg_len3, &checksum3, type3, msg3, &msg_len3);
     bno.getEvent(&event);
     imu_data[0] = (int)event.orientation.x;
@@ -660,6 +663,9 @@ void loop()
   // Successfully found a packet from the jetson
   if (end_cmp(end_arr))
   {
+#ifdef DEBUG
+    Serial.println("Received data from Jetson");
+#endif
     msg_buffer_len = buf_idx;
     msg_len = msg_buffer_len - 16; // 17 with new r2p
     buf_idx = 0;
@@ -675,13 +681,17 @@ void loop()
     { // Downstream Serial2
       Serial2.write(recv_buf, msg_buffer_len);
       Serial2.flush();
-      Serial.println("Wrote " + String(type) + " message");
+#ifdef DEBUG
+      Serial.println("Wrote " + String(type) + " message 2");
+#endif
     }
     else if (!strcmp(type, type2_u))
     { // Upstream Serial2
       Serial1.write(recv_buf2, msg_len2);
       Serial1.flush();
+#ifdef DEBUG
       Serial.println("Wrote " + String(type) + " data upstream");
+#endif
     }
 #endif
 #ifdef SER3
@@ -689,14 +699,18 @@ void loop()
     { // Downstream Serial3
       Serial3.write(recv_buf, msg_buffer_len);
       Serial3.flush();
-      Serial.println("Wrote " + String(type) + " message");
+#ifdef DEBUG
+      Serial.println("Wrote " + String(type) + " message 3");
+#endif
     }
     else if (!strcmp(type, type3_u))
     { // Upstream Serial3
       Serial1.write(recv_buf3, msg_len3 + 22);
 
       Serial1.flush();
+#ifdef DEBUG
       Serial.println("Wrote " + String(type) + " data upstream");
+#endif
     }
 #endif
 #ifdef SER4
@@ -704,27 +718,36 @@ void loop()
     { // Downstream Serial4
       Serial4.write(recv_buf, msg_buffer_len);
       Serial4.flush();
-      Serial.println("Wrote " + String(type) + " message");
+#ifdef DEBUG
+      Serial.println("Wrote " + String(type) + " message 4");
+#endif
     }
     else if (!strcmp(type, type4_u))
     { // Upstream Serial4
       Serial1.write(recv_buf4, msg_len4);
       Serial1.flush();
+#ifdef DEBUG
       Serial.println("Wrote " + String(type) + " data upstream");
+#endif
     }
 #endif
 #ifdef SER5
-    if (!strcmp(type, type5_d))
+    char type_head[] = "head"; // Downstream type
+    if (!strcmp(type, type5_d) || !strcmp(type, type_head))
     { // Downstream Serial5
       Serial5.write(recv_buf, msg_buffer_len);
       Serial5.flush();
-      Serial.println("Wrote " + String(type) + " message");
+#ifdef DEBUG
+      Serial.println("Wrote " + String(type) + " message 5");
+#endif
     }
     else if (!strcmp(type, type5_u))
     { // Upstream Serial5
       Serial1.write(recv_buf5, msg_len5);
       Serial1.flush();
+#ifdef DEBUG
       Serial.println("Wrote " + String(type) + " data upstream");
+#endif
     }
 #endif
 #ifdef SER6
@@ -732,13 +755,17 @@ void loop()
     { // Downstream Serial6
       Serial6.write(recv_buf, msg_buffer_len);
       Serial6.flush();
-      Serial.println("Wrote " + String(type) + " message");
+#ifdef DEBUG
+      Serial.println("Wrote " + String(type) + " message 6");
+#endif
     }
     else if (!strcmp(type, type6_u))
     { // Upstream Serial6
       Serial1.write(recv_buf6, msg_len6);
       Serial1.flush();
+#ifdef DEBUG
       Serial.println("Wrote " + String(type) + " data upstream");
+#endif
     }
 #endif
 #ifdef SER7
@@ -746,13 +773,17 @@ void loop()
     { // Downstream Serial7
       Serial7.write(recv_buf, msg_buffer_len);
       Serial7.flush();
-      Serial.println("Wrote " + String(type) + " message");
+#ifdef DEBUG
+      Serial.println("Wrote " + String(type) + " message 7");
+#endif
     }
     else if (!strcmp(type, type7_u))
     { // Upstream Serial7
       Serial1.write(recv_buf7, msg_len7);
       Serial1.flush();
+#ifdef DEBUG
       Serial.println("Wrote " + String(type) + " data upstream");
+#endif
     }
 #endif
     /*
