@@ -178,20 +178,6 @@ void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 {
 }
 
-void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len)
-{
-  //  int data_idx1;
-  //  int data_idx2;
-  for (int i = 0; i < 2 * len; i += 2)
-  {
-    data[i] = (databuffer[i / 2] >> 8) & 255;
-    data[i + 1] = (databuffer[i / 2]) & 255;
-  }
-}
-/*
-end of added IMU code uphere
-*/
-
 void setup()
 {
   Serial.println("Started");
@@ -651,6 +637,7 @@ void serialEvent1()
   if (Serial1.available())
   {
     recv_buf[buf_idx] = Serial1.read();
+    Serial.println(recv_buf[buf_idx],HEX);
     *p_prev2 = *p_prev1;
     *p_prev1 = *p_prev0;
     *p_prev0 = recv_buf[buf_idx];

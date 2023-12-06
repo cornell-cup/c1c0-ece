@@ -301,7 +301,6 @@ def sensor_token():
     """
     req = r2p.encode(b'SNSR', token.to_bytes(1, 'big'))
     ser.write(req)
-    #print(send_message)
     
 
 if __name__ == '__main__':

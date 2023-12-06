@@ -170,7 +170,7 @@ inline int32_t r2p_decode_nocs(const uint8_t* buffer, uint32_t buffer_len, uint1
   if (buffer[index + *data_len + 13] == 0xd2 && buffer[index + *data_len + 14] == 0xe2 && buffer[index + *data_len + 15] == 0xf2) {
     return index + *data_len + R2P_HEADER_SIZE;
   }
-  return -1;
+  return -2;
 }
 
 /**
@@ -188,7 +188,7 @@ inline int32_t r2p_decode(const uint8_t* buffer, uint32_t buffer_len, uint16_t* 
   // Decode without checking the checksum first
   uint32_t n = r2p_decode_nocs(buffer, buffer_len, checksum, type, data, data_len);
   if (n < 0) {
-    return -1;
+    return -3;
   }
 
   // A checksum of 0 signifies no checksum
@@ -317,6 +317,34 @@ inline void r2pf_read(r2pf_t* fsm, uint8_t read) {
         fsm->done = 0;
       }
       break;
+  }
+}
+
+inline void convert_b16_to_b8(volatile uint16_t *databuffer, volatile uint8_t *data, int len) 
+{
+  for (int i = 0; i < 2 * len; i += 2)
+  {
+    data[i] = (databuffer[i / 2] >> 8) & 255;
+    data[i + 1] = (databuffer[i / 2]) & 255;
+  }
+}
+
+inline void convert_b8_to_b16(volatile uint8_t *databuffer, volatile uint16_t *data)
+{
+  int data_idx;
+  for (int i = 0; i < 16; i++)
+  {
+    data_idx = i / 2;
+    if ((i & 1) == 0)
+    {
+      // even
+      data[data_idx] = databuffer[i] << 8;
+    }
+    else
+    {
+      // odd
+      data[data_idx] |= databuffer[i];
+    }
   }
 }
 
