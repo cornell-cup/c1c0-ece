@@ -502,7 +502,9 @@ void serialEvent5()
 {
   if (Serial5.available())
   {
+    Serial.println("Ser5 received");
     recv_buf5[ser5_count++] = Serial5.read();
+    //Serial.println(recv_buf5[ser5_count-1],HEX);
     if (ser5_count < msg_len5)
     {
       if (STATE5 == 0)
@@ -637,7 +639,6 @@ void serialEvent1()
   if (Serial1.available())
   {
     recv_buf[buf_idx] = Serial1.read();
-    Serial.println(recv_buf[buf_idx],HEX);
     *p_prev2 = *p_prev1;
     *p_prev1 = *p_prev0;
     *p_prev0 = recv_buf[buf_idx];
