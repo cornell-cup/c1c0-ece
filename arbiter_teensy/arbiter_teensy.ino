@@ -69,7 +69,7 @@ uint16_t ser4_count = 0;
 #ifdef SER5
 uint8_t STATE5 = 0;
 uint8_t recv_buf5[2048];
-uint16_t msg_len5 = 0;   // upstream packet length (data len) + 16
+uint16_t msg_len5 = 19;   // upstream packet length (data len) + 16
 char type5_d[] = "loco"; // Downstream type
 char type5_u[] = "LOCR"; // Upstream type
 uint16_t ser5_count = 0;
@@ -443,7 +443,7 @@ void serialEvent3()
     imu_data[1] = (int)event.orientation.y;
     imu_data[2] = (int)event.orientation.z;
 
-    convert_b16_to_b8(imu_data, msg3 + msg_len3, 3);
+    //convert_b16_to_b8(imu_data, msg3 + msg_len3, 3);
     r2p_encode(type3, msg3, msg_len3 + 6, recv_buf3, MAX_BUFFER_SIZE);
     ser3_count = 0;
 
@@ -504,7 +504,7 @@ void serialEvent5()
   {
     Serial.println("Ser5 received");
     recv_buf5[ser5_count++] = Serial5.read();
-    //Serial.println(recv_buf5[ser5_count-1],HEX);
+    Serial.println(recv_buf5[ser5_count-1],HEX);
     if (ser5_count < msg_len5)
     {
       if (STATE5 == 0)
@@ -538,6 +538,7 @@ void serialEvent5()
   }
   if (ser5_count == msg_len5)
   {
+    Serial.print("here");
     ser5_count = 0;
     STATE5 = 0;
   }
