@@ -11,12 +11,15 @@
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include <RPLidar.h>
+#include "RPLidar.h"
 #include "R2Protocol/R2Protocol.h"
 #include <EEPROM.h>
 
 // Macro to set if print statements for sensor data receiving is desired
 #define DEBUG 1
+
+#define JETSON_SERIAL_PORT Serial5 
+#define LIDAR_SERIAL_PORT Serial3
 
 #define START1 77
 #define START2 70
@@ -145,12 +148,11 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);  // Monitor
-  Serial5.begin(115200); // Terabee1
+  JETSON_SERIAL_PORT.begin(115200); // Terabee1
   Serial4.begin(115200); // Arbiter Teensy
-  Serial3.begin(38400);  // Lidar
   Serial7.begin(115200); // Terabee3
   // Serial4.begin(38400); //Jetson
-  lidar.begin(Serial3); // Lidar Initialization
+  lidar.begin(LIDAR_SERIAL_PORT); // Lidar Initialization
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
 
@@ -162,7 +164,7 @@ void setup()
   reset_input_buffer();
 
   permission = &(read_data[0]);
-  Serial.println("Stuff");
+Serial.println("Stuff");
 }
 
 uint8_t b;
@@ -179,23 +181,24 @@ uint8_t sensor_send_buffer[MAX_BUFFER_SIZE];
 void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_buffer)
 {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
-  Serial5.write(send_buffer, written);
+  JETSON_SERIAL_PORT.write(send_buffer, written);
   Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
 void loop()
 {
   // Terabee 1 Code
-  avail = Serial4.available();
+  avail = Serial1.available();
   if (avail > 0)
   {
-    //if (DEBUG)
-    //  Serial.println("Reading TB1");
+    if (DEBUG)
+      Serial.println("Reading TB1");
     if (state == MSG_INIT || state == MSG_BEGIN)
     {
+      find_msg(state, Serial1);
     }
     else if (state == MSG_DATA)
     {
-      Serial4.readBytes(sensor_databuffer + TB1_START, 16);
+      Serial1.readBytes(sensor_databuffer + TB1_START, 16);
       state = MSG_INIT;
       // convert_b8_to_b16(terabee1_databuffer, terabee1_data);
       //       for (int i = 0; i < 8; i++) {
@@ -207,57 +210,59 @@ void loop()
     }
   }
 
-  //  // Terabee 2 code
-  //  avail2 = Serial4.available();
-  //  if (avail2 > 0) {
-  //    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-  //      find_msg(state2, Serial4);
-  //    } else if (state2 == MSG_DATA) {
-  //      Serial4.readBytes(terabee2_databuffer, 16);
-  //      state2 = MSG_INIT;
-  //      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-  ////      for (int i = 0; i < 8; i++) {
-  ////        Serial.print("Sensor2 ");
-  ////        Serial.print(i);
-  ////        Serial.print(": ");
-  ////        Serial.println(terabee2_data[i]);
-  ////      }
-  //    }
+  ////  // Terabee 2 code
+  ////  avail2 = Serial4.available();
+  ////  if (avail2 > 0) {
+  ////    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
+  ////      find_msg(state2, Serial4);
+  ////    } else if (state2 == MSG_DATA) {
+  ////      Serial4.readBytes(terabee2_databuffer, 16);
+  ////      state2 = MSG_INIT;
+  ////      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
+  //////      for (int i = 0; i < 8; i++) {
+  //////        Serial.print("Sensor2 ");
+  //////        Serial.print(i);
+  //////        Serial.print(": ");
+  //////        Serial.println(terabee2_data[i]);
+  //////      }
+  ////    }
+  ////  }
+
+  //avail3 = Serial7.available();
+  //if (avail3 > 0)
+  //{
+  //  if (DEBUG)
+  //    Serial.println("Reading TB3");
+  //  if (state3 == MSG_INIT || state3 == MSG_BEGIN)
+  //  {
+  //    find_msg(state3, Serial7);
   //  }
+  //  else if (state3 == MSG_DATA)
+  //  {
+  //    Serial7.readBytes(sensor_databuffer + TB3_START, 16);
+  //    state3 = MSG_INIT;
+  //    // convert_b8_to_b16(terabee3_databuffer, terabee3_data);
+  //    //  imu code
 
-  avail3 = Serial7.available();
-  if (avail3 > 0)
-  {
-    if (DEBUG)
-      Serial.println("Reading TB3");
-    if (state3 == MSG_INIT || state3 == MSG_BEGIN)
-    {
-      find_msg(state3, Serial7);
-    }
-    else if (state3 == MSG_DATA)
-    {
-      Serial7.readBytes(sensor_databuffer + TB3_START, 16);
-      state3 = MSG_INIT;
-      // convert_b8_to_b16(terabee3_databuffer, terabee3_data);
-      //  imu code
-
-      //        Serial.print("X: ");
-      //        Serial.print(event.orientation.x, 4);
-      //        Serial.print("\tY: ");
-      //        Serial.print(event.orientation.y, 4);
-      //        Serial.print("\tZ: ");
-      //        Serial.print(event.orientation.z, 4);
-    }
-  }
-  // Serial.println(read_data[0]);
-  // Serial.println(Serial4.available());
+  //    //        Serial.print("X: ");
+  //    //        Serial.print(event.orientation.x, 4);
+  //    //        Serial.print("\tY: ");
+  //    //        Serial.print(event.orientation.y, 4);
+  //    //        Serial.print("\tZ: ");
+  //    //        Serial.print(event.orientation.z, 4);
+  //  }
+  //}
+  //// Serial.println(read_data[0]);
+  //// Serial.println(Serial4.available());
 
   // Lidar Code
-  //  Serial.println(IS_OK(lidar.waitPoint()));
+   //Serial.println(IS_OK(lidar.waitPoint()));
   if (IS_OK(lidar.waitPoint()))
   {
     uint16_t distance = (uint16_t)lidar.getCurrentPoint().distance; // distance value in mm unit
+    //Serial.println(distance);
     uint16_t angle = (uint16_t)lidar.getCurrentPoint().angle;       // angle value in degrees
+
     //        Serial.println("Angle:" + String(angle));
     //        Serial.println("Distance:" + String(distance));
     if (lidar_array_index <= LIDAR_DATA_POINTS - 1)

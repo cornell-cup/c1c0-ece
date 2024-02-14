@@ -401,7 +401,7 @@ void serialEvent3()
 {
   if (Serial3.available())
   {
-    // Serial.println("Reading from ser3");
+     //Serial.println("Reading from ser3");
     recv_buf3[ser3_count++] = Serial3.read();
     if (ser3_count < msg_len3)
     {
@@ -436,7 +436,7 @@ void serialEvent3()
   }
   if (ser3_count == msg_len3)
   {
-    // Serial.println(ser3_count);
+    Serial.println("Sensor Data Received");
     r2p_decode(recv_buf3, msg_len3, &checksum3, type3, msg3, &msg_len3);
     bno.getEvent(&event);
     imu_data[0] = (int)event.orientation.x;
