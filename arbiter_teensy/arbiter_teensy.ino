@@ -11,19 +11,20 @@
 
 #include "R2Protocol.h"
 /* ADDED IMU SETTING*/
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
-#include <EEPROM.h>
+// #include <Adafruit_BNO055.h>
+// #include <utility/imumaths.h>
+// #include <EEPROM.h>
+// #include "imu.h"
 
-#define DEBUG
+//#define DEBUG
 
 // Uncomment which serial ports are in use, make sure to define their parameters below
 #define SER2
 #define SER3
 #define SER4
 #define SER5
-#define SER6
-// #define SER7
+// #define SER6
+//  #define SER7
 
 // imu define
 #define BNO055_SAMPLERATE_DELAY_MS (100)
@@ -39,143 +40,124 @@
 
 // Need to declare these for each connected device
 
+typedef struct
+{
+  HardwareSerial *serialobj;
+  uint8_t STATE;
+  uint8_t recv_buf[2048];
+  uint32_t msg_len;
+  const char type_d[5];
+  const char type_u[5];
+  uint16_t ser_count;
+} serialBuffer;
+
+// Jetson Serial Port
+serialBuffer jetson_ser = {.serialobj = &Serial1, .STATE = 0, .recv_buf = {0}, .msg_len = MAX_BUFFER_SIZE, .type_d = "", .type_u = "", .ser_count = 0};
+
+// Precise Arm Serial Port
 #ifdef SER2
-uint8_t STATE2 = 0;
-uint8_t recv_buf2[2048]; // Buffer for upstream messages coming from Ser2 device, to be forwarded to jetson upon request
-uint16_t msg_len2 = 28;  // upstream packet length (data len) + 16
-char type2_d[] = "PRM";  // Downstream type
-char type2_u[] = "PRMR"; // Upstream type
-uint16_t ser2_count = 0;
+serialBuffer ser2 = {.serialobj = &Serial2, .STATE = 0, .recv_buf = {0}, .msg_len = 28, .type_d = "PRM", .type_u = "PRMR", .ser_count = 0};
 #endif
 
+// Sensor Serial Port
 #ifdef SER3
-uint8_t STATE3 = 0;
-uint8_t recv_buf3[2048];
-uint32_t msg_len3 = 1520; // upstream packet length (data len) + 16
-char type3_d[] = "SNS";   // Downstream type
-char type3_u[] = "SNSR";  // Upstream type
-uint16_t ser3_count = 0;
+serialBuffer ser3 = {.serialobj = &Serial3, .STATE = 0, .recv_buf = {0}, .msg_len = 1488, .type_d = "SENS", .type_u = "SNSR", .ser_count = 0};
 #endif
 
+// Strong Arm Serial Port
 #ifdef SER4
-uint8_t STATE4 = 0;
-uint8_t recv_buf4[2048];
-uint16_t msg_len4 = 29;  // upstream packet length (data len) + 16
-char type4_d[] = "STR";  // Downstream type
-char type4_u[] = "STRR"; // Upstream type (NOT NEEDED FOR PATH_PLANNING)
-uint16_t ser4_count = 0;
+serialBuffer ser4 = {.serialobj = &Serial4, .STATE = 0, .recv_buf = {0}, .msg_len = 29, .type_d = "STR", .type_u = "STRR", .ser_count = 0};
 #endif
 
+// Locomotion Serial Port
 #ifdef SER5
-uint8_t STATE5 = 0;
-uint8_t recv_buf5[2048];
-uint16_t msg_len5 = 19;   // upstream packet length (data len) + 16
-char type5_d[] = "loco"; // Downstream type
-char type5_u[] = "LOCR"; // Upstream type
-uint16_t ser5_count = 0;
+serialBuffer ser5 = {.serialobj = &Serial5, .STATE = 0, .recv_buf = {0}, .msg_len = 19, .type_d = "loco", .type_u = "LOCR", .ser_count = 0};
 #endif
 
+// Not used
 #ifdef SER6
-uint8_t STATE6 = 0;
-uint8_t recv_buf6[2048];
-uint16_t msg_len6 = 0; // upstream packet length (data len) + 16
-char type6_d[] = "";   // Downstream type
-char type6_u[] = "";   // Upstream type
-uint16_t ser6_count = 0;
+serialBuffer ser6 = {.serialobj = &Serial6, .STATE = 0, .recv_buf = {0}, .msg_len = 1, .type_d = "", .type_u = "", .ser_count = 0};
 #endif
 
 #ifdef SER7
-uint8_t STATE7 = 0;
-uint8_t recv_buf7[2048];
-uint16_t msg_len7 = 0; // upstream packet length (data len) + 16
-char type7_d[] = "";   // Downstream type
-char type7_u[] = "";   // Upstream type
-uint16_t ser7_count = 0;
+serialBuffer ser7 = {.serialobj = &Serial7, .STATE = 0, .recv_buf = {0}, .msg_len = 1, .type_d = "", .type_u = "", .ser_count = 0};
 #endif
 
-// parameters for r2p decode from jetson downstream
-uint32_t msg_buffer_len = 0;
-uint16_t checksum;
-char type[5];
-uint8_t msg[2048];
-uint32_t msg_len;
-uint8_t recv_buf[2048];
-
-uint16_t buf_idx = 0;
-
-uint8_t prev2 = 0, prev1 = 0, prev0 = 0;
-uint8_t *p_prev2 = &prev2, *p_prev1 = &prev1, *p_prev0 = &prev0;
-
-uint8_t end_seq[3] = {0xd2, 0xe2, 0xf2};
-uint8_t *end_arr[3] = {p_prev2, p_prev1, p_prev0};
-
-// IMU variables
-/*This IS IMPORTANT, added IMU code*/
-sensors_event_t event;
-uint8_t imu_databuffer[6];
-uint16_t imu_data[3];
-bool foundCalib;
-
-Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
-
-void displaySensorDetails(void)
+void serial_msg_complete(serialBuffer *ser)
 {
-  sensor_t sensor;
-  bno.getSensor(&sensor);
+  ser->ser_count = 0;
+  ser->STATE = 0;
 }
 
-/**************************************************************************/
-/*
-    Display some basic info about the sensor status
-    */
-/**************************************************************************/
-void displaySensorStatus(void)
+// Process jetson command and either send current buffer data upstream or send jetson message downstream
+void process_jetson_command(serialBuffer *ser, char *type, uint32_t msg_buffer_len)
 {
-  /* Get the system status values (mostly for debugging purposes) */
-  uint8_t system_status, self_test_results, system_error;
-  system_status = self_test_results = system_error = 0;
-  bno.getSystemStatus(&system_status, &self_test_results, &system_error);
-}
+  // Check if head command which is locomotion head command
+  char type_head[] = "head"; // Downstream type
 
-/**************************************************************************/
-/*
-    Display sensor calibration status
-    */
-/**************************************************************************/
-void displayCalStatus(void)
-{
-  /* Get the four calibration values (0..3) */
-  /* Any sensor data reporting 0 should be ignored, */
-  /* 3 means 'fully calibrated" */
-  uint8_t system, gyro, accel, mag;
-  system = gyro = accel = mag = 0;
-  bno.getCalibration(&system, &gyro, &accel, &mag);
-
-  /* The data should be ignored until the system calibration is > 0 */
-  Serial.print("\t");
-  if (!system)
+  if (!strcmp(type, ser->type_d) || !strcmp(type, type_head))
   {
-    Serial.print("! ");
+    // Send data downstream
+    (*(ser->serialobj)).write(jetson_ser.recv_buf, msg_buffer_len);
+    memset(ser->recv_buf, 0, MAX_BUFFER_SIZE);
+    jetson_ser.STATE = 0;
+    (*(ser->serialobj)).flush();
+#ifdef DEBUG
+    Serial.println("Wrote " + String(type) + " message downstream");
+#endif
   }
-
-  /* Display the individual values */
-  Serial.print("Sys:");
-  Serial.print(system, DEC);
-  Serial.print(" G:");
-  Serial.print(gyro, DEC);
-  Serial.print(" A:");
-  Serial.print(accel, DEC);
-  Serial.print(" M:");
-  Serial.print(mag, DEC);
+  else if (!strcmp(type, ser->type_u))
+  { // Upstream Serial4
+    if (ser == &ser3)
+      Serial1.write(ser->recv_buf, ser->msg_len + IMU_DATA_LEN + R2P_HEADER_SIZE);
+    else
+      Serial1.write(ser->recv_buf, ser->msg_len + R2P_HEADER_SIZE);
+    memset(ser->recv_buf, 0, MAX_BUFFER_SIZE);
+#ifdef DEBUG
+    Serial.println("Wrote " + String(type) + " data upstream");
+#endif
+  }
 }
 
-/**************************************************************************/
-/*
-    Display the raw calibration offset and radius data
-    */
-/**************************************************************************/
-void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
+// Interrupt handler for serial buffer
+void serial_irq(serialBuffer *ser)
 {
+  if ((*(ser->serialobj)).available())
+  {
+    uint8_t val = (*(ser->serialobj)).read();
+    ser->recv_buf[ser->ser_count] = val;
+    (ser->ser_count)++;
+    if (ser->ser_count < ser->msg_len)
+    {
+      if (ser->STATE == 0)
+      {
+        if (ser->recv_buf[0] == 0xa2)
+          ser->STATE = 0xa2;
+        else
+          ser->ser_count = 0;
+      }
+      else if (ser->STATE == 0xa2)
+      {
+        if (ser->recv_buf[1] == 0xb2)
+          ser->STATE = 0xb2;
+        else
+        {
+          ser->ser_count = 0;
+          ser->STATE = 0;
+        }
+      }
+      else if (ser->STATE == 0xb2)
+      {
+        if (ser->recv_buf[2] == 0xc2)
+          ser->STATE = 0xc2;
+        else
+        {
+          ser->ser_count = 0;
+          ser->STATE = 0;
+        }
+      }
+    }
+  }
 }
 
 void setup()
@@ -205,249 +187,51 @@ void setup()
 #ifdef SER7
   Serial7.begin(115200);
 #endif
-  /* Initialise the sensor */
-  if (!bno.begin())
-  {
-    /* There was a problem detecting the BNO055 ... check your connections */
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-    while (1)
-      ;
-  }
-  Serial.println("BNO5 detected");
-  bno.enterNormalMode();
 
-  while (Serial1.available() > 0)
-  {
-    Serial1.read();
-    delay(100);
-  }
-
-  /*
-  Added IMU code
-  */
-  Serial.println("Orientation Sensor Test");
-  Serial.println("");
-
-  int eeAddress = 0;
-  long bnoID;
-  bool foundCalib = false;
-
-  EEPROM.get(eeAddress, bnoID);
-
-  adafruit_bno055_offsets_t calibrationData;
-  sensor_t sensor;
-
-  /*
-   *  Look for the sensor's unique ID at the beginning oF EEPROM.
-   *  This isn't foolproof, but it's better than nothing.
-   */
-  bno.getSensor(&sensor);
-  Serial.println("got sensor");
-  if (bnoID != sensor.sensor_id)
-  {
-    Serial.println("\nNo Calibration Data for this sensor exists in EEPROM");
-    delay(500);
-  }
-  else
-  {
-    Serial.println("\nFound Calibration for this sensor in EEPROM.");
-    eeAddress += sizeof(long);
-    EEPROM.get(eeAddress, calibrationData);
-
-    displaySensorOffsets(calibrationData);
-
-    Serial.println("\n\nRestoring Calibration data to the BNO055...");
-    bno.setSensorOffsets(calibrationData);
-
-    Serial.println("\n\nCalibration data loaded into BNO055");
-    foundCalib = true;
-  }
-
-  delay(1000);
-
-  /* Display some basic information on this sensor */
-  displaySensorDetails();
-
-  /* Optional: Display current status */
-  displaySensorStatus();
-
-  /* Crystal must be configured AFTER loading calibration data into BNO055. */
-  bno.setExtCrystalUse(true);
-
-  /* always recal the mag as It goes out of calibration very often */
-  //  if (foundCalib)
-  //  {
-  //    Serial.println("Move sensor slightly to calibrate magnetometers");
-  //    while (!bno.isFullyCalibrated())
-  //    {
-  //      bno.getEvent(&event);
-  //      delay(BNO055_SAMPLERATE_DELAY_MS);
-  //    }
-  //  }
-  //  else
-  //  {
-  //    Serial.println("Please Calibrate Sensor: ");
-  //    while (!bno.isFullyCalibrated())
-  //    {
-  //      bno.getEvent(&event);
-  //
-  //      Serial.print("X: ");
-  //      Serial.print(event.orientation.x, 4);
-  //      Serial.print("\tY: ");
-  //      Serial.print(event.orientation.y, 4);
-  //      Serial.print("\tZ: ");
-  //      Serial.print(event.orientation.z, 4);
-  //
-  //      /* Optional: Display calibration status */
-  //      displayCalStatus();
-  //
-  //      /* New line for the next sample */
-  //      Serial.println("");
-  //
-  //      /* Wait the specified delay before requesting new data */
-  //      delay(BNO055_SAMPLERATE_DELAY_MS);
-  //    }
-  //  }
-  //
-  //  Serial.println("\nFully calibrated!");
-  //  Serial.println("--------------------------------");
-  //  Serial.println("Calibration Results: ");
-  //  adafruit_bno055_offsets_t newCalib;
-  //  bno.getSensorOffsets(newCalib);
-  //  displaySensorOffsets(newCalib);
-  //
-  //  Serial.println("\n\nStoring calibration data to EEPROM...");
-  //
-  //  eeAddress = 0;
-  //  bno.getSensor(&sensor);
-  //  bnoID = sensor.sensor_id;
-  //
-  //  EEPROM.put(eeAddress, bnoID);
-  //
-  //  eeAddress += sizeof(long);
-  //  EEPROM.put(eeAddress, newCalib);
-  //  Serial.println("Data stored to EEPROM.");
-  //
-  //  Serial.println("\n--------------------------------\n");
-  //  delay(500);
-  /*
-  End of added IMU code in setup
-  */
+  // imu_begin();
   Serial.println("starting");
 }
 
-inline uint8_t end_cmp(uint8_t *end_arr[3])
+inline bool full_jetson_packet_received()
 {
-  return ((*end_arr[0]) == end_seq[0]) && ((*end_arr[1]) == end_seq[1]) && ((*end_arr[2]) == end_seq[2]);
+  return jetson_ser.recv_buf[jetson_ser.ser_count - 3] == 0xd2 && jetson_ser.recv_buf[jetson_ser.ser_count - 2] == 0xe2 && jetson_ser.recv_buf[jetson_ser.ser_count - 1] == 0xf2;
 }
 
 #ifdef SER2
 void serialEvent2()
 {
-  if (Serial2.available())
+  serial_irq(&ser2);
+  if (ser2.ser_count == ser2.msg_len)
   {
-    recv_buf2[ser2_count++] = Serial2.read();
-    if (ser2_count < msg_len2)
-    {
-      if (STATE2 == 0)
-      {
-        if (recv_buf2[0] == 0xa2)
-          STATE2 = 0xa2;
-        else
-          ser2_count = 0;
-      }
-      else if (STATE2 == 0xa2)
-      {
-        if (recv_buf2[1] == 0xb2)
-          STATE2 = 0xb2;
-        else
-        {
-          ser2_count = 0;
-          STATE2 = 0;
-        }
-      }
-      else if (STATE2 == 0xb2)
-      {
-        if (recv_buf2[2] == 0xc2)
-          STATE2 = 0xc2;
-        else
-        {
-          ser2_count = 0;
-          STATE2 = 0;
-        }
-      }
-    }
-  }
-  if (ser2_count == msg_len2)
-  {
-    //    Serial.println(ser2_count);
-    //    Serial.println(recv_buf2[1573]);
-    ser2_count = 0;
-    STATE2 = 0;
+    serial_msg_complete(&ser2);
   }
 }
 #endif
-uint32_t msg_buffer_len3 = 0;
-uint16_t checksum3;
-char type3[5];
-uint8_t msg3[2048];
-// CONFLICT DEFINITION WITH uint16_t msg_len3 = 1574; //upstream packet length (data len) + 16, COMMENT OUT RIGHT NOW
-// uint32_t msg_len3;
-// CONFLICT DEFINITION WITH THE SAME THING ABOVE, COMMENT OUT FOR NOW
-// uint8_t recv_buf3[2048];
-// Sensor serial port
+
 #ifdef SER3
 void serialEvent3()
 {
-  if (Serial3.available())
+  serial_irq(&ser3);
+  if (ser3.ser_count == ser3.msg_len)
   {
-     //Serial.println("Reading from ser3");
-    recv_buf3[ser3_count++] = Serial3.read();
-    if (ser3_count < msg_len3)
-    {
-      if (STATE3 == 0)
-      {
-        if (recv_buf3[0] == 0xa2)
-          STATE3 = 0xa2;
-        else
-          ser3_count = 0;
-      }
-      else if (STATE3 == 0xa2)
-      {
-        if (recv_buf3[1] == 0xb2)
-          STATE3 = 0xb2;
-        else
-        {
-          ser3_count = 0;
-          STATE3 = 0;
-        }
-      }
-      else if (STATE3 == 0xb2)
-      {
-        if (recv_buf3[2] == 0xc2)
-          STATE3 = 0xc2;
-        else
-        {
-          ser3_count = 0;
-          STATE3 = 0;
-        }
-      }
-    }
-  }
-  if (ser3_count == msg_len3)
-  {
+#ifdef DEBUG
     Serial.println("Sensor Data Received");
-    r2p_decode(recv_buf3, msg_len3, &checksum3, type3, msg3, &msg_len3);
-    bno.getEvent(&event);
-    imu_data[0] = (int)event.orientation.x;
-    imu_data[1] = (int)event.orientation.y;
-    imu_data[2] = (int)event.orientation.z;
+#endif
 
-    //convert_b16_to_b8(imu_data, msg3 + msg_len3, 3);
-    r2p_encode(type3, msg3, msg_len3 + 6, recv_buf3, MAX_BUFFER_SIZE);
-    ser3_count = 0;
+    uint32_t msg_buffer_len3;
+    uint16_t checksum3;
+    char type3[5];
+    uint8_t msg3[MAX_BUFFER_SIZE] = {0};
 
-    STATE3 = 0;
+    // decoding message and adding IMU data to it
+    uint32_t data_length;
+    r2p_decode(ser3.recv_buf, ser3.ser_count, &checksum3, type3, msg3, &data_length);
+    memset(ser3.recv_buf, 0, MAX_BUFFER_SIZE);
+    uint16_t imu_data[3] = {0};
+    convert_b16_to_b8(imu_data, msg3 + ser3.msg_len, IMU_DATA_LEN / 2);
+    r2p_encode(type3, msg3, ser3.msg_len + IMU_DATA_LEN, ser3.recv_buf, ser3.msg_len + IMU_DATA_LEN + R2P_HEADER_SIZE);
+
+    serial_msg_complete(&ser3);
   }
 }
 #endif
@@ -455,44 +239,10 @@ void serialEvent3()
 #ifdef SER4
 void serialEvent4()
 {
-  if (Serial4.available())
+  serial_irq(&ser4);
+  if (ser4.ser_count == ser4.msg_len)
   {
-    recv_buf4[ser4_count++] = Serial4.read();
-    if (ser4_count < msg_len4)
-    {
-      if (STATE4 == 0)
-      {
-        if (recv_buf4[0] == 0xa2)
-          STATE4 = 0xa2;
-        else
-          ser4_count = 0;
-      }
-      else if (STATE4 == 0xa2)
-      {
-        if (recv_buf4[1] == 0xb2)
-          STATE4 = 0xb2;
-        else
-        {
-          ser4_count = 0;
-          STATE4 = 0;
-        }
-      }
-      else if (STATE4 == 0xb2)
-      {
-        if (recv_buf4[2] == 0xc2)
-          STATE4 = 0xc2;
-        else
-        {
-          ser4_count = 0;
-          STATE4 = 0;
-        }
-      }
-    }
-  }
-  if (ser4_count == msg_len4)
-  {
-    ser4_count = 0;
-    STATE4 = 0;
+    serial_msg_complete(&ser4);
   }
 }
 #endif
@@ -500,47 +250,10 @@ void serialEvent4()
 #ifdef SER5
 void serialEvent5()
 {
-  if (Serial5.available())
+  serial_irq(&ser5);
+  if (ser5.ser_count == ser5.msg_len)
   {
-    Serial.println("Ser5 received");
-    recv_buf5[ser5_count++] = Serial5.read();
-    Serial.println(recv_buf5[ser5_count-1],HEX);
-    if (ser5_count < msg_len5)
-    {
-      if (STATE5 == 0)
-      {
-        if (recv_buf5[0] == 0xa2)
-          STATE5 = 0xa2;
-        else
-          ser5_count = 0;
-      }
-      else if (STATE5 == 0xa2)
-      {
-        if (recv_buf5[1] == 0xb2)
-          STATE5 = 0xb2;
-        else
-        {
-          ser5_count = 0;
-          STATE5 = 0;
-        }
-      }
-      else if (STATE5 == 0xb2)
-      {
-        if (recv_buf5[2] == 0xc2)
-          STATE5 = 0xc2;
-        else
-        {
-          ser5_count = 0;
-          STATE5 = 0;
-        }
-      }
-    }
-  }
-  if (ser5_count == msg_len5)
-  {
-    Serial.print("here");
-    ser5_count = 0;
-    STATE5 = 0;
+    serial_msg_complete(&ser5);
   }
 }
 #endif
@@ -548,44 +261,10 @@ void serialEvent5()
 #ifdef SER6
 void serialEvent6()
 {
-  if (Serial6.available())
+  serial_irq(&ser6);
+  if (ser6.ser_count == ser6.msg_len)
   {
-    recv_buf6[ser6_count++] = Serial6.read();
-    if (ser6_count < msg_len6)
-    {
-      if (STATE6 == 0)
-      {
-        if (recv_buf6[0] == 0xa2)
-          STATE6 = 0xa2;
-        else
-          ser6_count = 0;
-      }
-      else if (STATE6 == 0xa2)
-      {
-        if (recv_buf6[1] == 0xb2)
-          STATE6 = 0xb2;
-        else
-        {
-          ser6_count = 0;
-          STATE6 = 0;
-        }
-      }
-      else if (STATE6 == 0xb2)
-      {
-        if (recv_buf6[2] == 0xc2)
-          STATE6 = 0xc2;
-        else
-        {
-          ser6_count = 0;
-          STATE6 = 0;
-        }
-      }
-    }
-  }
-  if (ser6_count == msg_len6)
-  {
-    ser6_count = 0;
-    STATE6 = 0;
+    serial_msg_complete(&ser6);
   }
 }
 #endif
@@ -593,194 +272,60 @@ void serialEvent6()
 #ifdef SER7
 void serialEvent7()
 {
-  if (Serial7.available())
+  serial_irq(&ser7);
+  if (ser7.ser_count == ser7.msg_len)
   {
-    recv_buf7[ser7_count++] = Serial7.read();
-    if (ser7_count < msg_len7)
-    {
-      if (STATE7 == 0)
-      {
-        if (recv_buf7[0] == 0xa2)
-          STATE7 = 0xa2;
-        else
-          ser7_count = 0;
-      }
-      else if (STATE7 == 0xa2)
-      {
-        if (recv_buf7[1] == 0xb2)
-          STATE7 = 0xb2;
-        else
-        {
-          ser7_count = 0;
-          STATE7 = 0;
-        }
-      }
-      else if (STATE7 == 0xb2)
-      {
-        if (recv_buf7[2] == 0xc2)
-          STATE7 = 0xc2;
-        else
-        {
-          ser7_count = 0;
-          STATE7 = 0;
-        }
-      }
-    }
-  }
-  if (ser7_count == msg_len7)
-  {
-    ser7_count = 0;
-    STATE7 = 0;
+    serial_msg_complete(&ser7);
   }
 }
 #endif
 // Receives variable length messages from Jetson, end_cmp() detects if we have a valid packet
 void serialEvent1()
 {
-  if (Serial1.available())
+  if (jetson_ser.STATE != 0xf2)
   {
-    recv_buf[buf_idx] = Serial1.read();
-    *p_prev2 = *p_prev1;
-    *p_prev1 = *p_prev0;
-    *p_prev0 = recv_buf[buf_idx];
-    buf_idx++;
+    serial_irq(&jetson_ser);
+    if (full_jetson_packet_received())
+      jetson_ser.STATE = 0xf2;
   }
 }
 
 void loop()
 {
   // Successfully found a packet from the jetson
-  if (end_cmp(end_arr))
+  // Serial.println("Waiting");
+  // delay(100);
+  if (jetson_ser.STATE == 0xf2)
   {
 #ifdef DEBUG
     Serial.println("Received data from Jetson");
 #endif
-    msg_buffer_len = buf_idx;
-    msg_len = msg_buffer_len - 16; // 17 with new r2p
-    buf_idx = 0;
-    // Reset end pointers
-    *p_prev2 = 0;
-    *p_prev1 = 0;
-    *p_prev0 = 0;
+    uint16_t checksum;
+    char type[5];
+    uint8_t msg[MAX_BUFFER_SIZE] = {0};
+    uint32_t msg_len;
 
-    r2p_decode(recv_buf, msg_buffer_len, &checksum, type, msg, &msg_len);
-// Route ENCODED data to correct host, or print out type if not resolved
+    r2p_decode(jetson_ser.recv_buf, jetson_ser.ser_count, &checksum, type, msg, &msg_len);
+
 #ifdef SER2
-    if (!strcmp(type, type2_d))
-    { // Downstream Serial2
-      Serial2.write(recv_buf, msg_buffer_len);
-      Serial2.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " message 2");
-#endif
-    }
-    else if (!strcmp(type, type2_u))
-    { // Upstream Serial2
-      Serial1.write(recv_buf2, msg_len2);
-      Serial1.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " data upstream");
-#endif
-    }
+    process_jetson_command(&ser2, type, jetson_ser.ser_count);
 #endif
 #ifdef SER3
-    if (!strcmp(type, type3_d))
-    { // Downstream Serial3
-      Serial3.write(recv_buf, msg_buffer_len);
-      Serial3.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " message 3");
-#endif
-    }
-    else if (!strcmp(type, type3_u))
-    { // Upstream Serial3
-      Serial1.write(recv_buf3, msg_len3 + 22);
-
-      Serial1.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " data upstream");
-#endif
-    }
+    process_jetson_command(&ser3, type, jetson_ser.ser_count);
 #endif
 #ifdef SER4
-    if (!strcmp(type, type4_d))
-    { // Downstream Serial4
-      Serial4.write(recv_buf, msg_buffer_len);
-      Serial4.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " message 4");
-#endif
-    }
-    else if (!strcmp(type, type4_u))
-    { // Upstream Serial4
-      Serial1.write(recv_buf4, msg_len4);
-      Serial1.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " data upstream");
-#endif
-    }
+    process_jetson_command(&ser4, type, jetson_ser.ser_count);
 #endif
 #ifdef SER5
-    char type_head[] = "head"; // Downstream type
-    if (!strcmp(type, type5_d) || !strcmp(type, type_head))
-    { // Downstream Serial5
-      Serial5.write(recv_buf, msg_buffer_len);
-      Serial5.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " message 5");
-#endif
-    }
-    else if (!strcmp(type, type5_u))
-    { // Upstream Serial5
-      Serial1.write(recv_buf5, msg_len5);
-      Serial1.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " data upstream");
-#endif
-    }
+    process_jetson_command(&ser5, type, jetson_ser.ser_count);
 #endif
 #ifdef SER6
-    if (!strcmp(type, type6_d))
-    { // Downstream Serial6
-      Serial6.write(recv_buf, msg_buffer_len);
-      Serial6.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " message 6");
-#endif
-    }
-    else if (!strcmp(type, type6_u))
-    { // Upstream Serial6
-      Serial1.write(recv_buf6, msg_len6);
-      Serial1.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " data upstream");
-#endif
-    }
+    process_jetson_command(&ser6, type, jetson_ser.ser_count);
 #endif
 #ifdef SER7
-    if (!strcmp(type, type7_d))
-    { // Downstream Serial7
-      Serial7.write(recv_buf, msg_buffer_len);
-      Serial7.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " message 7");
+    process_jetson_command(&ser7, type, jetson_ser.ser_count);
 #endif
-    }
-    else if (!strcmp(type, type7_u))
-    { // Upstream Serial7
-      Serial1.write(recv_buf7, msg_len7);
-      Serial1.flush();
-#ifdef DEBUG
-      Serial.println("Wrote " + String(type) + " data upstream");
-#endif
-    }
-#endif
-    /*
-    Below all added code for IMU
-    */
 
-    //      else{
-    //        Serial.println("Unrecognized Type: "+String(type));
-    //      }
+    serial_msg_complete(&jetson_ser);
   }
 }
