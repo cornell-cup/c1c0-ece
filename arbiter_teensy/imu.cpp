@@ -209,7 +209,8 @@ void imu_begin()
 void imu_get_data(uint16_t *buf)
 {
     bno.getEvent(&event);
-    buf[0] = (int)event.orientation.x;
-    buf[1] = (int)event.orientation.y;
-    buf[2] = (int)event.orientation.z;
+    buf[0] = (int16_t)event.orientation.x;
+    buf[1] = (int16_t)event.orientation.y;
+    buf[2] = (int16_t)event.orientation.z;
+    Serial.println(buf[0]);
 }

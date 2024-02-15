@@ -11,10 +11,10 @@
 
 #include "R2Protocol.h"
 /* ADDED IMU SETTING*/
-// #include <Adafruit_BNO055.h>
-// #include <utility/imumaths.h>
-// #include <EEPROM.h>
-// #include "imu.h"
+#include <Adafruit_BNO055.h>
+#include <utility/imumaths.h>
+#include <EEPROM.h>
+#include "imu.h"
 
 //#define DEBUG
 
@@ -166,8 +166,9 @@ void setup()
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
   Serial.begin(115200);  // Serial monitor
-  Serial1.begin(115200); // TX1/RX1
+  jetson_ser.begin(115200);
 
+  imu_begin();
 // These need to be declared in order to read and send messages to the respective devices
 #ifdef SER2
   Serial2.begin(115200);
@@ -188,7 +189,6 @@ void setup()
   Serial7.begin(115200);
 #endif
 
-  // imu_begin();
   Serial.println("starting");
 }
 
@@ -228,6 +228,7 @@ void serialEvent3()
     r2p_decode(ser3.recv_buf, ser3.ser_count, &checksum3, type3, msg3, &data_length);
     memset(ser3.recv_buf, 0, MAX_BUFFER_SIZE);
     uint16_t imu_data[3] = {0};
+    imu_get_data(imu_data);
     convert_b16_to_b8(imu_data, msg3 + ser3.msg_len, IMU_DATA_LEN / 2);
     r2p_encode(type3, msg3, ser3.msg_len + IMU_DATA_LEN, ser3.recv_buf, ser3.msg_len + IMU_DATA_LEN + R2P_HEADER_SIZE);
 
