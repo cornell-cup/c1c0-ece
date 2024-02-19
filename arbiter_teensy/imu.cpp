@@ -8,6 +8,7 @@
 sensors_event_t event;
 uint8_t imu_databuffer[6];
 uint16_t imu_data[3];
+uint16_t oldbuf[3];
 bool foundCalib;
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55); // Instantiate IMU
@@ -208,9 +209,27 @@ void imu_begin()
 
 void imu_get_data(uint16_t *buf)
 {
+    // grab old copy
+    oldbuf[0] = buf[0];
+    oldbuf[1] = buf[1];
+    oldbuf[2] = buf[2];
+
+    // update with new imu values
     bno.getEvent(&event);
     buf[0] = (int16_t)event.orientation.x;
     buf[1] = (int16_t)event.orientation.y;
     buf[2] = (int16_t)event.orientation.z;
-    Serial.println(buf[0]);
+
+    // if zerod, send old copy
+    if ((buf[0] == 0) && (buf[1] == 0) && (buf[2] == 0)) {
+      buf[0] = oldbuf[0];
+      buf[1] = oldbuf[1];
+      buf[2] = oldbuf[2];
+    }
+    Serial.println("IMU Data:");
+    for (int i=0; i<3; i++){
+      Serial.print(buf[i]);
+      Serial.print(" ");
+    }
+    Serial.println("");
 }

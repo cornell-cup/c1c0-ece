@@ -16,7 +16,7 @@
 #include <EEPROM.h>
 #include "imu.h"
 
-//#define DEBUG
+// #define DEBUG
 
 // Uncomment which serial ports are in use, make sure to define their parameters below
 #define SER2
@@ -168,7 +168,7 @@ void setup()
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
   Serial.begin(115200);  // Serial monitor
-  (*(jetson_ser.serialobj)).begin(115200);
+  Serial1.begin(115200);
 
   imu_begin();
 // These need to be declared in order to read and send messages to the respective devices
@@ -231,6 +231,9 @@ void serialEvent3()
     memset(ser3.recv_buf, 0, MAX_BUFFER_SIZE);
     uint16_t imu_data[3] = {0};
     imu_get_data(imu_data);
+    // if (imu_data[1] == 0) {
+    //   Serial.println("IMU Data[1] is zero");
+    // }
     convert_b16_to_b8(imu_data, msg3 + ser3.msg_len, IMU_DATA_LEN / 2);
     r2p_encode(type3, msg3, ser3.msg_len + IMU_DATA_LEN, ser3.recv_buf, ser3.msg_len + IMU_DATA_LEN + R2P_HEADER_SIZE);
 
@@ -298,6 +301,10 @@ void loop()
   // Successfully found a packet from the jetson
   // Serial.println("Waiting");
   // delay(100);
+  // uint16_t imu_data[3] = {0};
+  // imu_get_data(imu_data);
+  // delay(100);
+
   if (jetson_ser.STATE == 0xf2)
   {
 #ifdef DEBUG
