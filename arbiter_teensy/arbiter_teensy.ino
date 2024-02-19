@@ -99,9 +99,11 @@ void process_jetson_command(serialBuffer *ser, char *type, uint32_t msg_buffer_l
   {
     // Send data downstream
     (*(ser->serialobj)).write(jetson_ser.recv_buf, msg_buffer_len);
+
     memset(ser->recv_buf, 0, MAX_BUFFER_SIZE);
     jetson_ser.STATE = 0;
     (*(ser->serialobj)).flush();
+
 #ifdef DEBUG
     Serial.println("Wrote " + String(type) + " message downstream");
 #endif
@@ -166,7 +168,7 @@ void setup()
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
   Serial.begin(115200);  // Serial monitor
-  jetson_ser.begin(115200);
+  (*(jetson_ser.serialobj)).begin(115200);
 
   imu_begin();
 // These need to be declared in order to read and send messages to the respective devices
@@ -189,7 +191,7 @@ void setup()
   Serial7.begin(115200);
 #endif
 
-  Serial.println("starting");
+  Serial.println("Finished setup");
 }
 
 inline bool full_jetson_packet_received()
