@@ -16,11 +16,14 @@
 #include <EEPROM.h>
 
 // Macro to set if print statements for sensor data receiving is desired
-#define DEBUG 1
+#define DEBUG 0
 
+//Serial port macros
 #define JETSON_SERIAL_PORT Serial5 
 #define LIDAR_SERIAL_PORT Serial3
+#define TERABEE_1_SERIAL_PORT Serial1
 
+//macros for finding points in terabee serial message
 #define START1 77
 #define START2 70
 
@@ -33,6 +36,7 @@
 
 #define RPLIDAR_MOTOR 3 // PWM pin for controlling RPLIDAR motor speed - connect to MOTOCTRL
 
+//Macros for appending sensor data into one array
 #define LIDAR_DATA_POINTS 360
 #define MAX_BUFFER_SIZE 2048
 #define TERABEE_DATA_LEN 16
@@ -44,6 +48,7 @@
 #define TB2_START TB1_START + TERABEE_DATA_LEN
 #define TB3_START TB2_START + TERABEE_DATA_LEN
 #define LIDAR_START TB3_START + TERABEE_DATA_LEN
+
 // Terabee Variables
 int test_var = 0;
 int state;
@@ -79,6 +84,7 @@ int count;
 
 RPLidar lidar; // Instantiate lidar
 
+//parses serial port for terabee message
 void find_msg(int &state, HardwareSerial &ser)
 {
   uint8_t b = ser.read();
@@ -105,6 +111,7 @@ void find_msg(int &state, HardwareSerial &ser)
   }
 }
 
+//converts an array of uint8_t to array of uint16_t
 void convert_b8_to_b16(uint8_t *databuffer, uint16_t *data)
 {
   int data_idx;
@@ -124,6 +131,7 @@ void convert_b8_to_b16(uint8_t *databuffer, uint16_t *data)
   }
 }
 
+//converts an array of uint16_t to array of uint8_t
 void convert_b16_to_b8(uint16_t *databuffer, uint8_t *data, int len)
 {
   //  int data_idx1;
@@ -148,10 +156,8 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);  // Monitor
-  JETSON_SERIAL_PORT.begin(115200); // Terabee1
   Serial4.begin(115200); // Arbiter Teensy
   Serial7.begin(115200); // Terabee3
-  // Serial4.begin(38400); //Jetson
   lidar.begin(LIDAR_SERIAL_PORT); // Lidar Initialization
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
@@ -164,6 +170,7 @@ void setup()
   reset_input_buffer();
 
   permission = &(read_data[0]);
+
 Serial.println("Stuff");
 }
 
@@ -182,23 +189,25 @@ void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_bu
 {
   uint32_t written = r2p_encode(type, data, data_len, send_buffer, MAX_BUFFER_SIZE);
   JETSON_SERIAL_PORT.write(send_buffer, written);
-  Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
+  if(DEBUG)
+    Serial.println("NUMBER OF BYTES WRITTEN! READ ME " + String(written));
 }
 void loop()
 {
   // Terabee 1 Code
-  avail = Serial1.available();
+  avail = TERABEE_1_SERIAL_PORT.available();
+  Serial.println(TERABEE_1_SERIAL_PORT.available());
   if (avail > 0)
   {
     if (DEBUG)
       Serial.println("Reading TB1");
     if (state == MSG_INIT || state == MSG_BEGIN)
     {
-      find_msg(state, Serial1);
+      find_msg(state, TERABEE_1_SERIAL_PORT);
     }
     else if (state == MSG_DATA)
     {
-      Serial1.readBytes(sensor_databuffer + TB1_START, 16);
+      TERABEE_1_SERIAL_PORT.readBytes(sensor_databuffer + TB1_START, 16);
       state = MSG_INIT;
       // convert_b8_to_b16(terabee1_databuffer, terabee1_data);
       //       for (int i = 0; i < 8; i++) {
@@ -209,51 +218,6 @@ void loop()
       //       }
     }
   }
-
-  ////  // Terabee 2 code
-  ////  avail2 = Serial4.available();
-  ////  if (avail2 > 0) {
-  ////    if (state2 == MSG_INIT || state2 == MSG_BEGIN) {
-  ////      find_msg(state2, Serial4);
-  ////    } else if (state2 == MSG_DATA) {
-  ////      Serial4.readBytes(terabee2_databuffer, 16);
-  ////      state2 = MSG_INIT;
-  ////      convert_b8_to_b16(terabee2_databuffer, terabee2_data);
-  //////      for (int i = 0; i < 8; i++) {
-  //////        Serial.print("Sensor2 ");
-  //////        Serial.print(i);
-  //////        Serial.print(": ");
-  //////        Serial.println(terabee2_data[i]);
-  //////      }
-  ////    }
-  ////  }
-
-  //avail3 = Serial7.available();
-  //if (avail3 > 0)
-  //{
-  //  if (DEBUG)
-  //    Serial.println("Reading TB3");
-  //  if (state3 == MSG_INIT || state3 == MSG_BEGIN)
-  //  {
-  //    find_msg(state3, Serial7);
-  //  }
-  //  else if (state3 == MSG_DATA)
-  //  {
-  //    Serial7.readBytes(sensor_databuffer + TB3_START, 16);
-  //    state3 = MSG_INIT;
-  //    // convert_b8_to_b16(terabee3_databuffer, terabee3_data);
-  //    //  imu code
-
-  //    //        Serial.print("X: ");
-  //    //        Serial.print(event.orientation.x, 4);
-  //    //        Serial.print("\tY: ");
-  //    //        Serial.print(event.orientation.y, 4);
-  //    //        Serial.print("\tZ: ");
-  //    //        Serial.print(event.orientation.z, 4);
-  //  }
-  //}
-  //// Serial.println(read_data[0]);
-  //// Serial.println(Serial4.available());
 
   // Lidar Code
    //Serial.println(IS_OK(lidar.waitPoint()));

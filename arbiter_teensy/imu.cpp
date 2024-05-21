@@ -226,10 +226,10 @@ void imu_get_data(uint16_t *buf)
       buf[1] = oldbuf[1];
       buf[2] = oldbuf[2];
     }
-    Serial.println("IMU Data:");
-    for (int i=0; i<3; i++){
-      Serial.print(buf[i]);
-      Serial.print(" ");
-    }
-    Serial.println("");
+    //Serial.println("IMU Data:");
+    //for (int i=0; i<3; i++){
+    //  Serial.print(buf[i]);
+    //  Serial.print(" ");
+    //}
+    //Serial.println("");
 }
