@@ -21,7 +21,7 @@
 //Serial port macros
 #define JETSON_SERIAL_PORT Serial5 
 #define LIDAR_SERIAL_PORT Serial3
-#define TERABEE_1_SERIAL_PORT Serial1
+#define TERABEE_1_SERIAL_PORT Serial4
 
 //macros for finding points in terabee serial message
 #define START1 77
@@ -54,12 +54,8 @@ int test_var = 0;
 int state;
 uint8_t terabee1_databuffer[16] = {0};
 uint16_t terabee1_data[8] = {0};
-int state2;
-uint8_t terabee2_databuffer[16] = {0};
-uint16_t terabee2_data[8] = {0};
-int state3;
-uint8_t terabee3_databuffer[16] = {0};
-uint16_t terabee3_data[8] = {0};
+int min_val = 65535; // default max value
+int min_ind;
 
 // Lidar variables
 uint16_t LidarData[LIDAR_DATA_POINTS * 2]; // replace with fixed length and clear/run again if needed
@@ -156,8 +152,8 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);  // Monitor
-  Serial4.begin(115200); // Arbiter Teensy
-  Serial7.begin(115200); // Terabee3
+  Serial4.begin(115200); // Terabee3
+  // Serial7.begin(115200); // Terabee3
   lidar.begin(LIDAR_SERIAL_PORT); // Lidar Initialization
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
@@ -176,12 +172,8 @@ Serial.println("Stuff");
 
 uint8_t b;
 int avail;
-int avail2;
-int avail3;
 
 uint8_t terabee1_send_buffer[MAX_BUFFER_SIZE];
-uint8_t terabee2_send_buffer[MAX_BUFFER_SIZE];
-uint8_t terabee3_send_buffer[MAX_BUFFER_SIZE];
 uint8_t lidar_send_buffer[MAX_BUFFER_SIZE];
 uint8_t sensor_send_buffer[MAX_BUFFER_SIZE];
 
@@ -195,27 +187,37 @@ void send(char type[5], const uint8_t *data, uint32_t data_len, uint8_t *send_bu
 void loop()
 {
   // Terabee 1 Code
-  avail = TERABEE_1_SERIAL_PORT.available();
-  Serial.println(TERABEE_1_SERIAL_PORT.available());
-  if (avail > 0)
-  {
-    if (DEBUG)
-      Serial.println("Reading TB1");
+  while (TERABEE_1_SERIAL_PORT.available()) {
     if (state == MSG_INIT || state == MSG_BEGIN)
     {
       find_msg(state, TERABEE_1_SERIAL_PORT);
     }
     else if (state == MSG_DATA)
     {
-      TERABEE_1_SERIAL_PORT.readBytes(sensor_databuffer + TB1_START, 16);
-      state = MSG_INIT;
-      // convert_b8_to_b16(terabee1_databuffer, terabee1_data);
-      //       for (int i = 0; i < 8; i++) {
-      //         Serial.print("Sensor1 ");
-      //         Serial.print(i);
-      //         Serial.print(": ");
-      //         Serial.println(terabee1_data[i]);
-      //       }
+      if (TERABEE_1_SERIAL_PORT.available() >= 16) // Ensure full message is available
+      {
+        TERABEE_1_SERIAL_PORT.readBytes(terabee1_databuffer, 16);
+        state = MSG_INIT;
+        convert_b8_to_b16(terabee1_databuffer, terabee1_data);
+
+        min_val = 65535;
+        min_ind = 4;
+
+        for (int i = 0; i < 8; i++) {
+          Serial.print("Sensor1 ");
+          Serial.print(i+1);
+          Serial.print(": ");
+          Serial.println(terabee1_data[i]);
+
+          if (terabee1_data[i] < min_val) {
+            min_val = terabee1_data[i];
+            min_ind = i + 1;
+          }
+        }
+        Serial.print("Closest distance on sensor: ");
+        Serial.print(min_ind);
+        Serial.println("");
+      }
     }
   }
 

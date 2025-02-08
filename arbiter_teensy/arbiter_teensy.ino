@@ -53,6 +53,8 @@ typedef struct
 
 // Jetson Serial Port
 serialBuffer jetson_ser = {.serialobj = &Serial1, .STATE = 0, .recv_buf = {0}, .upstream_msg_len = MAX_BUFFER_SIZE, .type_d = "", .type_u = "", .ser_count = 0};
+// serialBuffer jetson_ser = {.serialobj = &Serial7, .STATE = 0, .recv_buf = {0}, .upstream_msg_len = MAX_BUFFER_SIZE, .type_d = "", .type_u = "", .ser_count = 0};
+// serialBuffer ser7 = {.serialobj = &Serial7, .STATE = 0, .recv_buf = {0}, .upstream_msg_len = 1, .type_d = "", .type_u = "", .ser_count = 0};
 
 // Precise Arm Serial Port
 #ifdef SER2
@@ -183,7 +185,7 @@ void setup()
   Serial.begin(115200); // Serial monitor
   (*(jetson_ser.serialobj)).begin(115200);
 
-  imu_begin();
+  // imu_begin();
 // These need to be declared in order to read and send messages to the respective devices
 #ifdef SER2
   Serial2.begin(115200);
@@ -305,8 +307,7 @@ void serialEvent1()
 void loop()
 {
   // Successfully found a packet from the jetson
-  // Serial.println("Waiting");
-  // delay(100);
+  delay(100);
   // uint16_t imu_data[3] = {0};
   // imu_get_data(imu_data);
   // delay(100);
