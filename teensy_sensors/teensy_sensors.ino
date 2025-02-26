@@ -22,6 +22,7 @@
 #define JETSON_SERIAL_PORT Serial5 
 #define LIDAR_SERIAL_PORT Serial3
 #define TERABEE_1_SERIAL_PORT Serial4
+#define LOCOMOTION_SERIAL_PORT Serial1
 
 //macros for finding points in terabee serial message
 #define START1 77
@@ -55,7 +56,7 @@ int state;
 uint8_t terabee1_databuffer[16] = {0};
 uint16_t terabee1_data[8] = {0};
 int min_val = 65535; // default max value
-int min_ind;
+byte min_ind;
 
 // Lidar variables
 uint16_t LidarData[LIDAR_DATA_POINTS * 2]; // replace with fixed length and clear/run again if needed
@@ -153,7 +154,7 @@ void setup()
   // put your setup code here, to run once:
   Serial.begin(115200);  // Monitor
   Serial4.begin(115200); // Terabee3
-  // Serial7.begin(115200); // Terabee3
+  Serial1.begin(115200); // Locomotion
   lidar.begin(LIDAR_SERIAL_PORT); // Lidar Initialization
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
@@ -162,7 +163,7 @@ void setup()
 
   Serial4.write(mode, 4); // write the command for hex output
                           //  Serial4.write(mode, 4); // write the command for hex output
-  Serial7.write(mode, 4);
+  // Serial7.write(mode, 4);
   reset_input_buffer();
 
   permission = &(read_data[0]);
@@ -203,20 +204,21 @@ void loop()
         min_val = 65535;
         min_ind = 4;
 
-        for (int i = 0; i < 8; i++) {
-          Serial.print("Sensor1 ");
-          Serial.print(i+1);
-          Serial.print(": ");
-          Serial.println(terabee1_data[i]);
-
+        for (byte i = 0; i < 8; i++) {
+          // Serial.print("Sensor1 ");
+          // Serial.print(i+1);
+          // Serial.print(": ");
+          // Serial.println(terabee1_data[i]);
           if (terabee1_data[i] < min_val) {
             min_val = terabee1_data[i];
             min_ind = i + 1;
           }
         }
-        Serial.print("Closest distance on sensor: ");
+        // Serial.print("Closest distance on sensor: ");
         Serial.print(min_ind);
         Serial.println("");
+
+        Serial1.write(min_ind);
       }
     }
   }
